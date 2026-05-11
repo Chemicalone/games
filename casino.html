@@ -561,10 +561,18 @@
     <span class="fish-icon">🐟</span>
   </div>
 
-  <!-- Save/Load -->
+  <!-- Points bar -->
+  <div style="text-align:center;margin:6px 0;font-size:0.8rem;color:var(--gold-dark);letter-spacing:2px;">
+    POINTS: <span id="points-display">0</span>
+    &nbsp;|&nbsp;
+    <button class="save-btn" onclick="convertFishToPoints()" style="font-size:0.75rem;padding:4px 12px;">🔄 CONVERTI FISH IN POINTS</button>
+  </div>
+
+  <!-- Save/Load + Home -->
   <div class="save-area">
     <button class="save-btn" onclick="saveGame()">💾 SALVA</button>
     <button class="save-btn" onclick="loadGame()">📂 CARICA</button>
+    <button class="save-btn" onclick="window.location.href='index.html'">🏠 HOME</button>
   </div>
 
   <!-- Welcome -->
@@ -999,6 +1007,7 @@ function toggleMusic() {
 
 // Autoplay musica all'avvio (con fallback al click utente se il browser blocca l'autoplay)
 document.addEventListener('DOMContentLoaded', () => {
+  updatePointsDisplay();
   const audio = document.getElementById('bg-music');
   const btn = document.getElementById('music-btn');
   const status = document.getElementById('audio-status');
@@ -1020,17 +1029,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== POINTS (campo) =====
 function getPoints() { return parseInt(localStorage.getItem('campo-points') || '0'); }
-function addPoints(n) { if (n > 0) localStorage.setItem('campo-points', getPoints() + n); }
+function addPoints(n) { if (n > 0) { localStorage.setItem('campo-points', getPoints() + n); updatePointsDisplay(); } }
+function updatePointsDisplay() { const el = document.getElementById('points-display'); if (el) el.textContent = getPoints(); }
+
+function convertFishToPoints() {
+  if (fish < 100) { showToast('Servono almeno 100 fish per convertire.'); return; }
+  const convertible = Math.floor(fish / 100);
+  const fishSpent = convertible * 100;
+  const pointsGained = convertible * 10;
+  fish -= fishSpent;
+  document.getElementById('fish-count').textContent = fish;
+  localStorage.setItem('casino_fish', fish);
+  addPoints(pointsGained);
+  showToast('Convertiti ' + fishSpent + ' fish in ' + pointsGained + ' points!');
+}
 
 // ===== FISH =====
 function updateFish(newVal, won) {
   const el = document.getElementById('fish-count');
-  const prev = fish;
   fish = Math.max(0, newVal);
   el.textContent = fish;
   el.className = '';
   void el.offsetWidth;
-  if (won === true) { el.className = 'win'; addPoints(fish - prev); }
+  if (won === true) el.className = 'win';
   else if (won === false) el.className = 'lose';
   if (fish < 10) setTimeout(() => document.getElementById('game-over').classList.add('active'), 800);
 }
