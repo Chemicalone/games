@@ -19,18 +19,16 @@
     --card-border-w: 1px;
     --font: monospace;
     --cursor: default;
-    --deco: none;
   }
 
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: var(--bg);
     color: var(--fg);
     font-family: var(--font);
     font-size: 16px;
-    padding: 20px;
-    margin: 0;
+    padding: 24px 20px;
     cursor: var(--cursor);
     -webkit-tap-highlight-color: transparent;
     min-height: 100vh;
@@ -71,98 +69,162 @@
       0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px
     );
   }
-  body.deco-corner #screen::before, body.deco-corner #screen::after {
+  body.deco-corner #hub-wrap::before, body.deco-corner #hub-wrap::after {
     content: ''; position: absolute;
-    width: 12px; height: 12px;
+    width: 14px; height: 14px;
     border-color: var(--accent); border-style: solid; border-width: 0;
     opacity: 0.35;
   }
-  body.deco-corner #screen { position: relative; }
-  body.deco-corner #screen::before { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
-  body.deco-corner #screen::after  { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+  body.deco-corner #hub-wrap { position: relative; }
+  body.deco-corner #hub-wrap::before { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+  body.deco-corner #hub-wrap::after  { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
 
-  /* ── CONTENT ── */
+  /* ── LAYOUT ── */
+  #hub-wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  #hub-title {
+    font-size: 20px;
+    letter-spacing: 6px;
+    opacity: 0.5;
+  }
   #points-bar {
-    margin-bottom: 12px;
+    font-size: 13px;
+    opacity: 0.8;
+  }
+  #points-bar span {
     color: var(--accent);
-    font-size: 14px;
-    position: relative; z-index: 1;
-  }
-  #screen {
-    white-space: pre;
-    position: relative; z-index: 1;
-    padding: 4px 0;
-  }
-  #input-line {
-    margin-top: 10px;
-    position: relative; z-index: 1;
-  }
-  input[type=text] {
-    background: transparent;
-    color: var(--fg);
-    border: none; outline: none;
-    font-family: var(--font);
-    font-size: 16px;
-    caret-color: var(--accent);
-    width: 3ch;
   }
 
-  /* ── GAME CARDS (stile menu) ── */
-  .game-line {
-    display: inline;
-  }
-
-  /* ── MOBILE BUTTONS ── */
-  #menu-btns {
-    display: none;
+  /* ── GAME CARDS ── */
+  #menu-cards {
+    display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 12px;
-    max-width: 260px;
-    position: relative; z-index: 1;
+    gap: 10px;
   }
-  .menu-btn {
+
+  .game-card {
     background: var(--card-bg);
-    color: var(--fg);
     border-style: var(--card-border-style);
     border-width: var(--card-border-w);
     border-color: var(--card-border);
     border-radius: var(--card-radius);
     box-shadow: var(--card-shadow);
+    padding: 14px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.15s, color 0.15s, transform 0.12s;
+    position: relative;
+    overflow: hidden;
+    /* reset button styles */
     font-family: var(--font);
     font-size: 15px;
-    padding: 10px 16px;
-    cursor: pointer;
+    color: var(--fg);
     text-align: left;
-    transition: border-color 0.15s, color 0.15s;
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
   }
-  .menu-btn:active, .menu-btn:hover {
+  .game-card:hover,
+  .game-card:focus {
     border-color: var(--accent);
     color: var(--accent);
+    outline: none;
+    transform: translateX(3px);
+  }
+  .game-card:active {
+    transform: translateX(6px);
   }
 
-  @media (pointer: coarse) {
-    #input-line { display: none; }
-    #menu-btns  { display: flex; }
+  .card-num {
+    opacity: 0.3;
+    font-size: 13px;
+    min-width: 2ch;
   }
+  .card-name {
+    flex: 1;
+    letter-spacing: 1px;
+  }
+  .card-arrow {
+    opacity: 0.2;
+    font-size: 12px;
+    transition: opacity 0.15s;
+  }
+  .game-card:hover .card-arrow,
+  .game-card:focus .card-arrow {
+    opacity: 0.7;
+  }
+
+  /* deco-corner sulle card */
+  body.deco-corner .game-card::before,
+  body.deco-corner .game-card::after {
+    content: '';
+    position: absolute;
+    width: 8px; height: 8px;
+    border-color: var(--accent);
+    border-style: solid;
+    border-width: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  body.deco-corner .game-card::before { top: 4px; left: 4px; border-top-width: 1px; border-left-width: 1px; }
+  body.deco-corner .game-card::after  { bottom: 4px; right: 4px; border-bottom-width: 1px; border-right-width: 1px; }
+  body.deco-corner .game-card:hover::before,
+  body.deco-corner .game-card:hover::after { opacity: 0.5; }
 </style>
 </head>
 <body>
 
-<div id="points-bar">points: <span id="points-count">0</span></div>
-<div id="screen"></div>
-<div id="input-line"><span id="prompt"></span><input type="text" id="cmd" maxlength="1" autocomplete="off" /></div>
-<div id="menu-btns">
-  <button class="menu-btn" onclick="menuChoice('1')">1) figet</button>
-  <button class="menu-btn" onclick="menuChoice('2')">2) casino</button>
-  <button class="menu-btn" onclick="menuChoice('3')">3) battaglie</button>
-  <button class="menu-btn" onclick="menuChoice('4')">4) campo di battaglia</button>
-  <button class="menu-btn" onclick="menuChoice('5')">5) shop</button>
+<div id="hub-wrap">
+  <div id="header">
+    <div id="hub-title">[ hub ]</div>
+    <div id="points-bar">pts: <span id="points-count">0</span></div>
+  </div>
+
+  <div id="menu-cards">
+    <button class="game-card" onclick="go('figget.html')">
+      <span class="card-num">1</span>
+      <span class="card-name">figet</span>
+      <span class="card-arrow">▶</span>
+    </button>
+    <button class="game-card" onclick="go('casino.html')">
+      <span class="card-num">2</span>
+      <span class="card-name">casino</span>
+      <span class="card-arrow">▶</span>
+    </button>
+    <button class="game-card" onclick="go('index_battaglie.html')">
+      <span class="card-num">3</span>
+      <span class="card-name">battaglie</span>
+      <span class="card-arrow">▶</span>
+    </button>
+    <button class="game-card" onclick="go('campo.html')">
+      <span class="card-num">4</span>
+      <span class="card-name">campo di battaglia</span>
+      <span class="card-arrow">▶</span>
+    </button>
+    <button class="game-card" onclick="go('shop.html')">
+      <span class="card-num">5</span>
+      <span class="card-name">shop</span>
+      <span class="card-arrow">▶</span>
+    </button>
+  </div>
 </div>
 
 <script>
 // ──────────────────────────────────────────────
-//  COSMETICI
+//  COSMETICI — stessa logica dello shop
 // ──────────────────────────────────────────────
 const CSS_MAP = {
   bg: {
@@ -225,14 +287,17 @@ function applyCosmetics() {
 
   ['bg','font','card','accent','cursor'].forEach(cat => {
     const id = equipped[cat];
-    if (!id || !CSS_MAP[cat][id]) return;
+    if (!id || !CSS_MAP[cat] || !CSS_MAP[cat][id]) return;
     CSS_MAP[cat][id].split(';').forEach(rule => {
-      const [prop, val] = rule.split(':');
-      if (prop && val !== undefined) root.style.setProperty(prop.trim(), val.trim());
+      const sep = rule.indexOf(':');
+      if (sep === -1) return;
+      const prop = rule.slice(0, sep).trim();
+      const val  = rule.slice(sep + 1).trim();
+      if (prop && val !== undefined) root.style.setProperty(prop, val);
     });
   });
 
-  // deco: body classes
+  // deco: classi su body
   const body = document.body;
   body.classList.remove('deco-scan','deco-vignette','deco-grid','deco-cross','deco-crt','deco-corner','deco-lines');
   const decoId = equipped['deco'];
@@ -241,52 +306,22 @@ function applyCosmetics() {
     if (dv !== 'none') body.classList.add('deco-' + dv);
   }
 
-  // bg-ash ha anche linee
-  const bgId = equipped['bg'];
-  if (bgId === 'bg-ash') body.classList.add('deco-lines');
+  // bg-ash aggiunge le linee
+  if (equipped['bg'] === 'bg-ash') body.classList.add('deco-lines');
 }
 
 applyCosmetics();
 
 // ──────────────────────────────────────────────
-//  GIOCO
+//  PUNTI
 // ──────────────────────────────────────────────
-const pointsCount = document.getElementById('points-count');
-function getPoints()       { return parseInt(localStorage.getItem('campo-points') || '0'); }
-function updatePointsBar() { pointsCount.textContent = getPoints(); }
-updatePointsBar();
+function getPoints() { return parseInt(localStorage.getItem('campo-points') || '0'); }
+document.getElementById('points-count').textContent = getPoints();
 
-const screen   = document.getElementById('screen');
-const promptEl = document.getElementById('prompt');
-const cmdInput = document.getElementById('cmd');
-
-function showMenu() {
-  screen.textContent =
-    'scegli un gioco\n1) figet\n2) casino\n3) battaglie\n4) campo di battaglia\n5) shop\n';
-  promptEl.textContent = 'scelta: ';
-  cmdInput.value = '';
-  cmdInput.focus();
-}
-
-function menuChoice(val) {
-  if      (val === '1') window.location.href = 'figget.html';
-  else if (val === '2') window.location.href = 'casino.html';
-  else if (val === '3') window.location.href = 'index_battaglie.html';
-  else if (val === '4') window.location.href = 'campo.html';
-  else if (val === '5') window.location.href = 'shop.html';
-  else { screen.textContent = 'scelta non valida\n'; promptEl.textContent = ''; setTimeout(showMenu, 800); }
-}
-
-cmdInput.addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
-  const val = cmdInput.value.trim();
-  cmdInput.value = '';
-  menuChoice(val);
-});
-
-showMenu();
-cmdInput.focus();
-document.addEventListener('click', () => cmdInput.focus());
+// ──────────────────────────────────────────────
+//  NAVIGAZIONE
+// ──────────────────────────────────────────────
+function go(href) { window.location.href = href; }
 </script>
 </body>
 </html>
