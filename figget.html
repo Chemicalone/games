@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fidget Spinner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #ffbb32;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      gap: 1.4rem;
+      width: 100%;
+      font-family: 'Boogaloo', 'Arial Black', sans-serif;
+    }
+
+    /* --- SPINNER --- */
+    #spinner-container {
+      position: relative;
+      width: min(72vw, 340px);
+      height: min(72vw, 340px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #spinner {
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+      will-change: transform;
+      filter: drop-shadow(0 0 14px rgba(80,80,80,0.3));
+    }
+
+    #center-cap {
+      position: absolute;
+      width: min(18vw, 68px);
+      height: min(18vw, 68px);
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 4px solid #444;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: clamp(11px, 3vw, 14px);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+      z-index: 10;
+      font-family: 'Boogaloo', sans-serif;
+    }
+    #center-cap:active { background: #555; transform: scale(0.94); }
+
+    /* --- NUMERO VELOCITÀ --- */
+    #velocita-display {
+      font-family: 'Boogaloo', sans-serif;
+      font-size: clamp(72px, 22vw, 110px);
+      color: #1a1a1a;
+      line-height: 1;
+      letter-spacing: -2px;
+      transition: color 0.3s;
+    }
+    #velocita-display.fast   { color: #e24b4a; }
+    #velocita-display.medium { color: #b85a00; }
+
+    #label {
+      font-size: clamp(12px, 3.5vw, 16px);
+      color: #7a5500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-family: sans-serif;
+      font-weight: 400;
+    }
+
+    /* --- BARRA --- */
+    #bar-bg {
+      width: min(80vw, 320px);
+      height: 12px;
+      background: rgba(0,0,0,0.12);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    #bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: #1a7a55;
+      transition: width 0.15s, background 0.3s;
+      width: 0%;
+    }
+
+    /* --- MESSAGGIO SCEMO --- */
+    #scemo-msg {
+      font-family: 'Boogaloo', sans-serif;
+      font-size: clamp(18px, 5vw, 26px);
+      color: #c0392b;
+      min-height: 34px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      text-align: center;
+    }
+    #scemo-msg.visible { opacity: 1; }
+
+    /* --- BOTTONI --- */
+    .btn-row {
+      display: flex;
+      gap: 16px;
+      width: min(90vw, 400px);
+    }
+
+    .spin-btn {
+      font-family: 'Boogaloo', sans-serif;
+      font-size: clamp(22px, 6vw, 32px);
+      padding: clamp(14px, 4vw, 20px) 0;
+      flex: 1;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: transform 0.1s, filter 0.1s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .spin-btn:active { transform: scale(0.94); filter: brightness(0.9); }
+
+    .spin-btn.green {
+      background: #1a1a1a;
+      color: #ffdd77;
+    }
+    .spin-btn.red {
+      background: #c0392b;
+      color: #fff;
+    }
+
+    /* --- ISTRUZIONI (solo su schermi grandi) --- */
+    #istruzioni {
+      font-size: 13px;
+      color: #7a5500;
+      font-family: sans-serif;
+      text-align: center;
+      line-height: 1.6;
+    }
+    #istruzioni kbd {
+      background: rgba(0,0,0,0.1);
+      border: 0.5px solid rgba(0,0,0,0.2);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #1a1a1a;
+    }
+
+    @media (max-width: 480px) {
+      #istruzioni { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="spinner-container">
+    <svg id="spinner" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="lobe-grad" cx="50%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#b0b0b0"/>
+          <stop offset="100%" stop-color="#555"/>
+        </radialGradient>
+        <radialGradient id="lobe-grad2" cx="50%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#d0d0d0"/>
+          <stop offset="100%" stop-color="#777"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="140" cy="62" rx="38" ry="38" fill="url(#lobe-grad)" stroke="#333" stroke-width="1.5"/>
+      <circle cx="140" cy="62" r="14" fill="#1a1a1a" stroke="#555" stroke-width="1.5"/>
+      <circle cx="140" cy="62" r="6" fill="#888"/>
+      <ellipse cx="206" cy="172" rx="38" ry="38" fill="url(#lobe-grad2)" stroke="#333" stroke-width="1.5"/>
+      <circle cx="206" cy="172" r="14" fill="#1a1a1a" stroke="#555" stroke-width="1.5"/>
+      <circle cx="206" cy="172" r="6" fill="#888"/>
+      <ellipse cx="74" cy="172" rx="38" ry="38" fill="url(#lobe-grad)" stroke="#333" stroke-width="1.5"/>
+      <circle cx="74" cy="172" r="14" fill="#1a1a1a" stroke="#555" stroke-width="1.5"/>
+      <circle cx="74" cy="172" r="6" fill="#888"/>
+      <line x1="140" y1="100" x2="140" y2="116" stroke="#666" stroke-width="18" stroke-linecap="round"/>
+      <line x1="175" y1="158" x2="160" y2="148" stroke="#666" stroke-width="18" stroke-linecap="round"/>
+      <line x1="105" y1="158" x2="120" y2="148" stroke="#666" stroke-width="18" stroke-linecap="round"/>
+      <polygon points="140,100 196,165 84,165" fill="#888" stroke="#444" stroke-width="1.5" stroke-linejoin="round"/>
+      <polygon points="140,110 188,160 92,160" fill="#aaa"/>
+    </svg>
+    <div id="center-cap">SPIN</div>
+  </div>
+
+  <div id="velocita-display">0</div>
+  <div id="label">velocità</div>
+  <div id="bar-bg"><div id="bar-fill"></div></div>
+  <div id="scemo-msg">hai sbauuto il dito...scemo 🤌</div>
+
+  <div class="btn-row">
+    <button class="spin-btn green" id="btn-z">▲ GIRA</button>
+    <button class="spin-btn red"   id="btn-x">▼ FRENA</button>
+  </div>
+
+  <div id="istruzioni">
+    premi <kbd>Z</kbd> per accelerare &nbsp;·&nbsp; <kbd>X</kbd> per frenare
+  </div>
+
+  <div style="font-family:'Boogaloo',sans-serif;font-size:clamp(14px,4vw,20px);color:#1a1a1a;text-align:center;letter-spacing:1px;">
+    points: <span id="points-display">0</span>
+    &nbsp;|&nbsp;
+    prossimo in <span id="next-point">--</span>s
+  </div>
+
+  <button onclick="window.location.href='index.html'" style="font-family:'Boogaloo',sans-serif;font-size:clamp(14px,4vw,18px);padding:10px 28px;border-radius:12px;border:none;background:#1a1a1a;color:#ffdd77;cursor:pointer;letter-spacing:1px;">🏠 HOME</button>
+</div>
+
+<script>
+const MAX_VELOCITA  = 1000;
+const SOGLIA_SCEMO  = 500;
+const INCREMENTO    = 50;
+const DECREMENTO_STEP = 5;
+
+let velocita = 0;
+let angolo   = 0;
+let lastTime = null;
+let ultimoDecremento = performance.now();
+let scemoTimeout = null;
+
+const spinner  = document.getElementById('spinner');
+const display  = document.getElementById('velocita-display');
+const barFill  = document.getElementById('bar-fill');
+const scemoMsg = document.getElementById('scemo-msg');
+
+function mostraScemo() {
+  scemoMsg.classList.add('visible');
+  clearTimeout(scemoTimeout);
+  scemoTimeout = setTimeout(() => scemoMsg.classList.remove('visible'), 1200);
+}
+
+function aggiorna() {
+  const v = Math.round(velocita);
+  display.textContent = v;
+  display.className = v >= 700 ? 'fast' : v >= 350 ? 'medium' : '';
+  const pct = Math.min(v / MAX_VELOCITA * 100, 100);
+  barFill.style.width = pct + '%';
+  barFill.style.background = v >= 700 ? '#c0392b' : v >= 350 ? '#b85a00' : '#1a7a55';
+}
+
+function premi(tasto) {
+  if (tasto === 'z') {
+    if (velocita >= SOGLIA_SCEMO) mostraScemo();
+    velocita = Math.min(velocita + INCREMENTO, MAX_VELOCITA);
+  } else if (tasto === 'x') {
+    if (velocita >= SOGLIA_SCEMO) mostraScemo();
+    velocita = Math.max(velocita - INCREMENTO, 0);
+  }
+  aggiorna();
+}
+
+document.getElementById('btn-z').addEventListener('click', () => premi('z'));
+document.getElementById('btn-x').addEventListener('click', () => premi('x'));
+document.getElementById('center-cap').addEventListener('click', () => premi('z'));
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); premi('z'); }
+  if (e.key === 'x' || e.key === 'X') { e.preventDefault(); premi('x'); }
+});
+
+function loop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  const dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  if (timestamp - ultimoDecremento >= 500) {
+    if (velocita > 0) velocita = Math.max(0, velocita - DECREMENTO_STEP);
+    ultimoDecremento = timestamp;
+    aggiorna();
+  }
+
+  const degreesPerSec = velocita * 3.6;
+  angolo = (angolo + degreesPerSec * dt) % 360;
+  spinner.style.transform = `rotate(${angolo}deg)`;
+
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+aggiorna();
+
+// ===== POINTS =====
+// velocità 0–349: nessun guadagno
+// velocità 350–699 (media): 1 punto ogni 10s
+// velocità 700–1000 (alta): 1 punto ogni 5s
+// il timer si azzera se si scende sotto 350
+
+function getPoints() { return parseInt(localStorage.getItem('campo-points') || '0'); }
+function addPoint() {
+  const p = getPoints() + 1;
+  localStorage.setItem('campo-points', p);
+  document.getElementById('points-display').textContent = p;
+}
+function updatePointsDisplay() {
+  document.getElementById('points-display').textContent = getPoints();
+}
+updatePointsDisplay();
+
+let pointTimer = 0; // secondi accumulati verso il prossimo punto
+
+function pointInterval() {
+  const v = Math.round(velocita);
+  const nextEl = document.getElementById('next-point');
+  if (v < 350) {
+    pointTimer = 0;
+    nextEl.textContent = '--';
+    return;
+  }
+  const needed = v >= 700 ? 5 : 10; // secondi necessari
+  pointTimer += 1;
+  const remaining = needed - pointTimer;
+  nextEl.textContent = remaining > 0 ? remaining : 0;
+  if (pointTimer >= needed) {
+    pointTimer = 0;
+    addPoint();
+  }
+}
+
+setInterval(pointInterval, 1000);
+</script>
+</body>
+</html>
