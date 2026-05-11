@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>campo di battaglia</title>
+<style>
+  body {
+    background: #000;
+    color: #aaa;
+    font-family: monospace;
+    font-size: 16px;
+    padding: 20px;
+    margin: 0;
+  }
+  #points-bar { margin-bottom: 12px; color: #888; font-size: 14px; }
+  #screen { white-space: pre; }
+  #input-line { margin-top: 10px; }
+  input[type=text] {
+    background: #000;
+    color: #aaa;
+    border: none;
+    outline: none;
+    font-family: monospace;
+    font-size: 16px;
+    caret-color: #aaa;
+    width: 3ch;
+  }
+</style>
+</head>
+<body>
+<div id="points-bar">points: <span id="points-count">0</span></div>
+<div id="screen"></div>
+<div id="input-line"><span id="prompt"></span><input type="text" id="cmd" maxlength="1" autocomplete="off" /></div>
+
+<script>
+const screen      = document.getElementById('screen');
+const promptEl    = document.getElementById('prompt');
+const cmdInput    = document.getElementById('cmd');
+const pointsCount = document.getElementById('points-count');
+
+function getPoints()      { return parseInt(localStorage.getItem('campo-points') || '0'); }
+function updatePointsBar(){ pointsCount.textContent = getPoints(); }
+updatePointsBar();
+
+let phase = 'menu';
+let mode  = null;
+
+const ROWS = 10, COLS = 20;
+let player, enemy, cure;
+let oldPlayer, oldEnemy;
+let reset_count, cur, turn;
+
+function rnd(n) { return Math.floor(Math.random() * n); }
+
+function initGame() {
+  player  = { x: 2, y: 4, vita: 100 };
+  enemy   = { x: 0, y: 0, vita: 50 };
+  cure    = { x: 0, y: 0, vita: 0 };
+  reset_count = 1; cur = 0; turn = 0;
+  do { enemy.x = rnd(ROWS); enemy.y = rnd(COLS); }
+  while (enemy.x === player.x && enemy.y === player.y);
+  do { cure.x = rnd(ROWS); cure.y = rnd(COLS); }
+  while ((cure.x === player.x && cure.y === player.y) || (cure.x === enemy.x && cure.y === enemy.y));
+}
+
+function drawGame() {
+  const grid = Array.from({length: ROWS}, () => Array(COLS).fill('-'));
+  grid[player.x][player.y] = '+';
+  if (enemy.vita > 0) grid[enemy.x][enemy.y] = '/';
+  if (cur > 4) grid[cure.x][cure.y] = '#';
+  let out = 'usa wasd per muoverti / premi p per uscire\n\n';
+  for (let r = 0; r < ROWS; r++) out += grid[r].join('') + '\n';
+  out += '\n\ntu:' + player.vita + '\nnemico:' + enemy.vita + '\n';
+  screen.textContent = out;
+}
+
+function spawnCure() {
+  do { cure.x = rnd(ROWS); cure.y = rnd(COLS); }
+  while ((cure.x === player.x && cure.y === player.y) || (cure.x === enemy.x && cure.y === enemy.y));
+}
+
+function moveEnemy() {
+  const d = rnd(5) + 1;
+  if      (d === 1) enemy.y = (enemy.y + 1) % COLS;
+  else if (d === 2) enemy.y = (enemy.y - 1 + COLS) % COLS;
+  else if (d === 3) enemy.x = (enemy.x - 1 + ROWS) % ROWS;
+  else if (d === 4) enemy.x = (enemy.x + 1) % ROWS;
+}
+
+function gameStep(key) {
+  if (key === 'p') { endGame(false); return; }
+  if (player.vita <= 0) { endGame(true); return; }
+  if (mode !== 'easy' && turn % 5 === 0) player.vita -= (reset_count < 4) ? 5 : 10;
+  if (cur < 4) { cur = rnd(25); spawnCure(); } else { cur--; }
+  if (enemy.vita <= 0) {
+    reset_count++;
+    enemy.vita = 50 * reset_count;
+    do { enemy.x = rnd(ROWS); enemy.y = rnd(COLS); }
+    while (enemy.x === player.x && enemy.y === player.y);
+  }
+  oldPlayer = { ...player };
+  oldEnemy  = { ...enemy };
+  if      (key === 'd') player.y = (player.y + 1) % COLS;
+  else if (key === 'a') player.y = (player.y - 1 + COLS) % COLS;
+  else if (key === 'w') player.x = (player.x - 1 + ROWS) % ROWS;
+  else if (key === 's') player.x = (player.x + 1) % ROWS;
+  moveEnemy();
+  if (player.x === enemy.x && player.y === enemy.y) {
+    player.x = oldPlayer.x; player.y = oldPlayer.y;
+    enemy.x = oldEnemy.x; enemy.y = oldEnemy.y;
+    enemy.vita -= 10;
+    if (mode !== 'normal') player.vita -= 10;
+  }
+  if (cur > 4 && player.x === cure.x && player.y === cure.y) {
+    player.vita += 10;
+    cur = 0;
+  }
+  turn++;
+  if (player.vita <= 0) { endGame(true); return; }
+  drawGame();
+}
+
+function endGame(lost) {
+  screen.textContent += lost ? '\n--- HAI PERSO ---\n' : '\n--- USCITO ---\n';
+  phase = 'menu';
+  setTimeout(showMenu, 1500);
+}
+
+function showMenu() {
+  phase = 'menu';
+  screen.textContent =
+    'scegli un gioco\n' +
+    '1) figet\n' +
+    '2) shop\n' +
+    '3) casino\n' +
+    '4) battaglie\n' +
+    '5) campo di battaglia\n';
+  promptEl.textContent = 'scelta: ';
+  cmdInput.value = '';
+  cmdInput.focus();
+}
+
+function showModeSelect() {
+  phase = 'mode_select';
+  screen.textContent = "scegli modalita': hard (0) normal(1) easy(2)\n";
+  promptEl.textContent = 'scelta: ';
+  cmdInput.value = '';
+  cmdInput.focus();
+}
+
+cmdInput.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const val = cmdInput.value.trim();
+  cmdInput.value = '';
+
+  if (phase === 'menu') {
+    if      (val === '1') window.location.href = 'https://figget.netlify.app/';
+    else if (val === '2') { screen.textContent = 'lascialo non implementato\n'; promptEl.textContent = ''; setTimeout(showMenu, 1000); }
+    else if (val === '3') window.location.href = 'https://digital-casino.netlify.app/';
+    else if (val === '4') window.location.href = 'index_battaglie.html';
+    else if (val === '5') showModeSelect();
+    else { screen.textContent = 'scelta non valida\n'; promptEl.textContent = ''; setTimeout(showMenu, 800); }
+    return;
+  }
+
+  if (phase === 'mode_select') {
+    if      (val === '0') mode = 'hard';
+    else if (val === '1') mode = 'normal';
+    else if (val === '2') mode = 'easy';
+    else { showModeSelect(); return; }
+    initGame();
+    phase = 'game';
+    promptEl.textContent = '';
+    drawGame();
+    cmdInput.focus();
+    return;
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (phase !== 'game') return;
+  const k = e.key.toLowerCase();
+  if (['w','a','s','d','p'].includes(k)) { e.preventDefault(); gameStep(k); }
+});
+
+showMenu();
+cmdInput.focus();
+document.addEventListener('click', () => cmdInput.focus());
+</script>
+</body>
+</html>
