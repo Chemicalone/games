@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>campo di battaglia</title>
 <style>
+  /* ── BASE (home/menu, stile terminale invariato) ── */
   body {
     background: #000;
     color: #aaa;
@@ -25,37 +26,305 @@
     caret-color: #aaa;
     width: 3ch;
   }
+
+  /* ── GAME UI (visibile solo durante il minigioco) ── */
+  #game-ui {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0a0608;
+    z-index: 100;
+    font-family: 'Crimson Pro', Georgia, serif;
+    overflow: hidden;
+  }
+
+  /* sfondo radiale */
+  #game-ui::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(139,26,26,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  #game-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  /* titolo modalità */
+  #mode-badge {
+    font-family: 'Cinzel Decorative', 'Georgia', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    color: rgba(201,168,76,0.5);
+    text-transform: uppercase;
+  }
+
+  /* barre HP */
+  #hp-bars {
+    display: flex;
+    gap: 24px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .hp-block { flex: 1; }
+  .hp-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    color: rgba(201,168,76,0.6);
+  }
+  .hp-label.enemy-label { color: rgba(200,60,60,0.7); text-align: right; }
+  .hp-track {
+    height: 8px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .hp-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.15s ease;
+  }
+  .hp-fill.player { background: linear-gradient(90deg, #2a7a4a, #4eff91); }
+  .hp-fill.enemy  { background: linear-gradient(90deg, #ff4e4e, #8b1a1a); }
+  .hp-num {
+    font-size: 0.75rem;
+    margin-top: 3px;
+    color: rgba(240,208,128,0.5);
+  }
+  .hp-num.right { text-align: right; }
+
+  /* griglia */
+  #grid-wrap {
+    border: 1px solid rgba(201,168,76,0.2);
+    background: rgba(10,6,8,0.7);
+    padding: 8px;
+    box-shadow: 0 0 40px rgba(139,26,26,0.1), inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 2px;
+  }
+  .cell {
+    width: clamp(14px, 3.5vw, 22px);
+    height: clamp(14px, 3.5vw, 22px);
+    border-radius: 2px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.08s;
+  }
+  .cell.player {
+    background: rgba(74,255,145,0.25);
+    border-color: #4eff91;
+    box-shadow: 0 0 6px rgba(74,255,145,0.5);
+  }
+  .cell.enemy {
+    background: rgba(255,78,78,0.25);
+    border-color: #ff4e4e;
+    box-shadow: 0 0 6px rgba(255,78,78,0.5);
+  }
+  .cell.cure {
+    background: rgba(201,168,76,0.2);
+    border-color: #c9a84c;
+    box-shadow: 0 0 6px rgba(201,168,76,0.4);
+  }
+
+  /* legenda */
+  #legend {
+    display: flex;
+    gap: 20px;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: rgba(201,168,76,0.35);
+    text-transform: uppercase;
+  }
+  .leg-item { display: flex; align-items: center; gap: 6px; }
+  .leg-dot {
+    width: 10px; height: 10px; border-radius: 2px; border: 1px solid;
+  }
+  .leg-dot.p { background: rgba(74,255,145,0.25); border-color: #4eff91; }
+  .leg-dot.e { background: rgba(255,78,78,0.25); border-color: #ff4e4e; }
+  .leg-dot.c { background: rgba(201,168,76,0.2); border-color: #c9a84c; }
+
+  /* istruzioni/esc */
+  #game-hint {
+    font-size: 0.65rem;
+    color: rgba(201,168,76,0.25);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* schermo selezione modalità */
+  #mode-select-ui {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0a0608;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 24px;
+  }
+  #mode-select-ui::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(139,26,26,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .mode-title {
+    font-family: 'Cinzel Decorative', Georgia, serif;
+    font-size: clamp(1rem, 3vw, 1.6rem);
+    color: rgba(240,208,128,0.8);
+    letter-spacing: 0.1em;
+    position: relative;
+    z-index: 1;
+  }
+  .mode-cards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+  .mode-card {
+    width: 140px;
+    padding: 20px 16px;
+    border: 1px solid rgba(201,168,76,0.25);
+    background: rgba(10,6,8,0.85);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+  .mode-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(201,168,76,0.7);
+    box-shadow: 0 6px 24px rgba(201,168,76,0.15);
+  }
+  .mode-card .mc-icon { font-size: 2rem; margin-bottom: 8px; }
+  .mode-card .mc-name {
+    font-family: 'Cinzel Decorative', Georgia, serif;
+    font-size: 0.8rem;
+    color: rgba(240,208,128,0.8);
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .mode-card .mc-desc {
+    font-size: 0.7rem;
+    color: rgba(201,168,76,0.4);
+    font-style: italic;
+    line-height: 1.4;
+  }
+  .mode-card.hard  { border-color: rgba(200,40,40,0.4); }
+  .mode-card.hard:hover { border-color: #cc2222; box-shadow: 0 6px 24px rgba(200,40,40,0.2); }
+  .mode-card.easy  { border-color: rgba(74,180,100,0.3); }
+  .mode-card.easy:hover { border-color: #4eb464; box-shadow: 0 6px 24px rgba(74,180,100,0.15); }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 </head>
 <body>
+
+<!-- ── HOME (terminale invariato) ── -->
 <div id="points-bar">points: <span id="points-count">0</span></div>
 <div id="screen"></div>
 <div id="input-line"><span id="prompt"></span><input type="text" id="cmd" maxlength="1" autocomplete="off" /></div>
 
-<script>
-const screen      = document.getElementById('screen');
-const promptEl    = document.getElementById('prompt');
-const cmdInput    = document.getElementById('cmd');
-const pointsCount = document.getElementById('points-count');
+<!-- ── SELEZIONE MODALITÀ ── -->
+<div id="mode-select-ui">
+  <div class="mode-title">◆ Scegli Modalità ◆</div>
+  <div class="mode-cards">
+    <div class="mode-card hard" onclick="startGame('hard')">
+      <div class="mc-icon">🔥</div>
+      <div class="mc-name">Hard</div>
+      <div class="mc-desc">danno passivo, nemici più duri</div>
+    </div>
+    <div class="mode-card" onclick="startGame('normal')">
+      <div class="mc-icon">⚔️</div>
+      <div class="mc-name">Normal</div>
+      <div class="mc-desc">danno passivo, nessun danno da scontro</div>
+    </div>
+    <div class="mode-card easy" onclick="startGame('easy')">
+      <div class="mc-icon">🌿</div>
+      <div class="mc-name">Easy</div>
+      <div class="mc-desc">nessun danno passivo</div>
+    </div>
+  </div>
+  <div style="font-size:0.65rem;color:rgba(201,168,76,0.2);letter-spacing:0.2em;text-transform:uppercase;position:relative;z-index:1;">
+    clicca per scegliere
+  </div>
+</div>
 
+<!-- ── GAME UI ── -->
+<div id="game-ui">
+  <div id="game-inner">
+    <div id="mode-badge">—</div>
+
+    <div id="hp-bars">
+      <div class="hp-block">
+        <div class="hp-label">Tu</div>
+        <div class="hp-track"><div class="hp-fill player" id="hp-player" style="width:100%"></div></div>
+        <div class="hp-num" id="hp-player-num">100</div>
+      </div>
+      <div class="hp-block">
+        <div class="hp-label enemy-label">Nemico</div>
+        <div class="hp-track"><div class="hp-fill enemy" id="hp-enemy" style="width:100%"></div></div>
+        <div class="hp-num right" id="hp-enemy-num">50</div>
+      </div>
+    </div>
+
+    <div id="grid-wrap">
+      <div id="grid"></div>
+    </div>
+
+    <div id="legend">
+      <div class="leg-item"><div class="leg-dot p"></div><span>tu</span></div>
+      <div class="leg-item"><div class="leg-dot e"></div><span>nemico</span></div>
+      <div class="leg-item"><div class="leg-dot c"></div><span>cura</span></div>
+    </div>
+
+    <div id="game-hint">WASD muovi &nbsp;·&nbsp; P esci</div>
+  </div>
+</div>
+
+<script>
+// ── points ──────────────────────────────────────────────────────
+const pointsCount = document.getElementById('points-count');
 function getPoints()      { return parseInt(localStorage.getItem('campo-points') || '0'); }
 function updatePointsBar(){ pointsCount.textContent = getPoints(); }
 updatePointsBar();
+
+// ── refs ────────────────────────────────────────────────────────
+const screen   = document.getElementById('screen');
+const promptEl = document.getElementById('prompt');
+const cmdInput = document.getElementById('cmd');
 
 let phase = 'menu';
 let mode  = null;
 
 const ROWS = 10, COLS = 20;
-let player, enemy, cure;
-let oldPlayer, oldEnemy;
+let player, enemy, cure, oldPlayer, oldEnemy;
 let reset_count, cur, turn;
 
 function rnd(n) { return Math.floor(Math.random() * n); }
 
 function initGame() {
-  player  = { x: 2, y: 4, vita: 100 };
-  enemy   = { x: 0, y: 0, vita: 50 };
-  cure    = { x: 0, y: 0, vita: 0 };
+  player = { x: 2, y: 4, vita: 100 };
+  enemy  = { x: 0, y: 0, vita: 50 };
+  cure   = { x: 0, y: 0, vita: 0 };
   reset_count = 1; cur = 0; turn = 0;
   do { enemy.x = rnd(ROWS); enemy.y = rnd(COLS); }
   while (enemy.x === player.x && enemy.y === player.y);
@@ -63,15 +332,36 @@ function initGame() {
   while ((cure.x === player.x && cure.y === player.y) || (cure.x === enemy.x && cure.y === enemy.y));
 }
 
+// ── griglia grafica ─────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.id = 'c_' + r + '_' + c;
+      grid.appendChild(cell);
+    }
+  }
+}
+
 function drawGame() {
-  const grid = Array.from({length: ROWS}, () => Array(COLS).fill('-'));
-  grid[player.x][player.y] = '+';
-  if (enemy.vita > 0) grid[enemy.x][enemy.y] = '/';
-  if (cur > 4) grid[cure.x][cure.y] = '#';
-  let out = 'usa wasd per muoverti / premi p per uscire\n\n';
-  for (let r = 0; r < ROWS; r++) out += grid[r].join('') + '\n';
-  out += '\n\ntu:' + player.vita + '\nnemico:' + enemy.vita + '\n';
-  screen.textContent = out;
+  // reset
+  document.querySelectorAll('.cell').forEach(c => c.className = 'cell');
+  // player
+  document.getElementById('c_' + player.x + '_' + player.y).className = 'cell player';
+  // enemy
+  if (enemy.vita > 0) document.getElementById('c_' + enemy.x + '_' + enemy.y).className = 'cell enemy';
+  // cure
+  if (cur > 4) document.getElementById('c_' + cure.x + '_' + cure.y).className = 'cell cure';
+  // hp bars
+  const maxPlayerHP = 100;
+  const maxEnemyHP  = 50 * reset_count;
+  document.getElementById('hp-player').style.width = Math.max(0, player.vita / maxPlayerHP * 100) + '%';
+  document.getElementById('hp-enemy').style.width  = Math.max(0, enemy.vita / maxEnemyHP * 100) + '%';
+  document.getElementById('hp-player-num').textContent = player.vita;
+  document.getElementById('hp-enemy-num').textContent  = Math.max(0, enemy.vita);
 }
 
 function spawnCure() {
@@ -121,13 +411,32 @@ function gameStep(key) {
 }
 
 function endGame(lost) {
-  screen.textContent += lost ? '\n--- HAI PERSO ---\n' : '\n--- USCITO ---\n';
+  document.getElementById('game-ui').style.display = 'none';
   phase = 'menu';
+  showMenu();
+  setTimeout(() => {
+    screen.textContent += lost ? '\n--- HAI PERSO ---\n' : '\n--- USCITO ---\n';
+  }, 50);
   setTimeout(showMenu, 1500);
 }
 
+function startGame(m) {
+  mode = m;
+  document.getElementById('mode-select-ui').style.display = 'none';
+  document.getElementById('game-ui').style.display = 'block';
+  document.getElementById('mode-badge').textContent =
+    m === 'hard' ? '— modalità hard —' : m === 'normal' ? '— modalità normal —' : '— modalità easy —';
+  initGame();
+  buildGrid();
+  phase = 'game';
+  drawGame();
+}
+
+// ── screens ──────────────────────────────────────────────────────
 function showMenu() {
   phase = 'menu';
+  document.getElementById('mode-select-ui').style.display = 'none';
+  document.getElementById('game-ui').style.display = 'none';
   screen.textContent =
     'scegli un gioco\n' +
     '1) figet\n' +
@@ -140,41 +449,23 @@ function showMenu() {
   cmdInput.focus();
 }
 
-function showModeSelect() {
-  phase = 'mode_select';
-  screen.textContent = "scegli modalita': hard (0) normal(1) easy(2)\n";
-  promptEl.textContent = 'scelta: ';
-  cmdInput.value = '';
-  cmdInput.focus();
-}
-
+// ── input ────────────────────────────────────────────────────────
 cmdInput.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   const val = cmdInput.value.trim();
   cmdInput.value = '';
-
-  if (phase === 'menu') {
-    if      (val === '1') window.location.href = 'figget.html';
-    else if (val === '2') { screen.textContent = 'lascialo non implementato\n'; promptEl.textContent = ''; setTimeout(showMenu, 1000); }
-    else if (val === '3') window.location.href = 'casino.html';
-    else if (val === '4') window.location.href = 'index_battaglie.html';
-    else if (val === '5') showModeSelect();
-    else { screen.textContent = 'scelta non valida\n'; promptEl.textContent = ''; setTimeout(showMenu, 800); }
-    return;
-  }
-
-  if (phase === 'mode_select') {
-    if      (val === '0') mode = 'hard';
-    else if (val === '1') mode = 'normal';
-    else if (val === '2') mode = 'easy';
-    else { showModeSelect(); return; }
-    initGame();
-    phase = 'game';
+  if (phase !== 'menu') return;
+  if      (val === '1') window.location.href = 'figget.html';
+  else if (val === '2') { screen.textContent = 'lascialo non implementato\n'; promptEl.textContent = ''; setTimeout(showMenu, 1000); }
+  else if (val === '3') window.location.href = 'casino.html';
+  else if (val === '4') window.location.href = 'index_battaglie.html';
+  else if (val === '5') {
+    phase = 'mode_select';
+    screen.textContent = '';
     promptEl.textContent = '';
-    drawGame();
-    cmdInput.focus();
-    return;
+    document.getElementById('mode-select-ui').style.display = 'flex';
   }
+  else { screen.textContent = 'scelta non valida\n'; promptEl.textContent = ''; setTimeout(showMenu, 800); }
 });
 
 document.addEventListener('keydown', (e) => {
@@ -185,7 +476,7 @@ document.addEventListener('keydown', (e) => {
 
 showMenu();
 cmdInput.focus();
-document.addEventListener('click', () => cmdInput.focus());
+document.addEventListener('click', () => { if (phase === 'menu') cmdInput.focus(); });
 </script>
 </body>
 </html>
