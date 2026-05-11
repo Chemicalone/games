@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>shop</title>
+<style>
+  :root {
+    --bg: #000;
+    --fg: #aaa;
+    --accent: #aaa;
+    --card-bg: #0a0a0a;
+    --card-border: #222;
+    --font: monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 15px;
+    min-height: 100vh;
+    transition: background 0.4s, color 0.4s;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--card-border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  #back-btn {
+    background: none; border: 1px solid var(--card-border);
+    color: var(--fg); font-family: var(--font); font-size: 13px;
+    padding: 5px 10px; cursor: pointer; border-radius: 2px;
+  }
+  #back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #shop-title { font-size: 18px; letter-spacing: 4px; opacity: 0.6; }
+  #points-hud {
+    font-size: 13px; opacity: 0.8;
+  }
+  #points-hud span { color: var(--accent); }
+
+  /* ── TABS ── */
+  #tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--card-border);
+    overflow-x: auto;
+    padding: 0 20px;
+    scrollbar-width: none;
+  }
+  #tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--fg); font-family: var(--font); font-size: 13px;
+    padding: 10px 16px; cursor: pointer; opacity: 0.5;
+    white-space: nowrap; transition: opacity 0.2s;
+  }
+  .tab.active { opacity: 1; border-bottom-color: var(--accent); }
+  .tab:hover { opacity: 0.8; }
+
+  /* ── GRID ── */
+  #shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 20px;
+  }
+
+  /* ── CARD ── */
+  .item-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 3px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .item-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .item-card.owned { opacity: 0.5; cursor: default; }
+  .item-card.owned:hover { transform: none; border-color: var(--card-border); }
+  .item-card.equipped { border-color: var(--accent); }
+  .item-card.equipped::before {
+    content: '▶';
+    position: absolute; top: 6px; right: 8px;
+    font-size: 10px; color: var(--accent); opacity: 0.7;
+  }
+
+  .preview {
+    height: 64px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .item-name { font-size: 12px; opacity: 0.9; }
+  .item-desc { font-size: 11px; opacity: 0.45; line-height: 1.4; }
+
+  .item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+  }
+  .item-price { font-size: 12px; color: var(--accent); }
+  .item-price.free { opacity: 0.3; }
+
+  .buy-btn {
+    background: none;
+    border: 1px solid var(--card-border);
+    color: var(--fg); font-family: var(--font); font-size: 11px;
+    padding: 4px 8px; cursor: pointer; border-radius: 1px;
+    transition: 0.2s;
+  }
+  .buy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .buy-btn.equip-btn { border-color: #333; }
+  .buy-btn.equip-btn:hover { border-color: var(--accent); }
+  .owned-label { font-size: 11px; opacity: 0.3; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #111; border: 1px solid var(--card-border);
+    color: var(--fg); font-family: var(--font); font-size: 13px;
+    padding: 9px 20px; border-radius: 2px;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    white-space: nowrap; z-index: 999;
+  }
+  #toast.show { opacity: 1; }
+
+  /* PREVIEW STYLES */
+  .prev-dark    { background: #050505; }
+  .prev-matrix  { background: #001200; }
+  .prev-blood   { background: #120000; }
+  .prev-deep    { background: #00001a; }
+  .prev-ash     { background: #0e0e0e; background-image: repeating-linear-gradient(0deg,transparent,transparent 2px,#111 2px,#111 3px); }
+  .prev-amber   { background: #100800; }
+  .prev-ice     { background: #00080f; }
+  .prev-purple  { background: #0a0010; }
+  .prev-noise   { background: #080808; filter: url(#noise); }
+
+  .prev-mono    { font-family: monospace; font-size:14px; color:#aaa; }
+  .prev-courier { font-family:'Courier New',monospace; font-size:13px; color:#aaa; }
+  .prev-vt323   { font-family:'VT323',monospace; font-size:20px; color:#aaa; }
+  .prev-share   { font-family:'Share Tech Mono',monospace; font-size:13px; color:#aaa; }
+  .prev-ibm     { font-family:'IBM Plex Mono',monospace; font-size:12px; color:#aaa; }
+  .prev-terminus{ font-family:'Terminess Nerd Font',monospace; font-size:13px; color:#aaa; }
+
+  .prev-card-plain { border:1px solid #222; background:#0a0a0a; border-radius:0; }
+  .prev-card-double{ border:2px double #444; background:#080808; }
+  .prev-card-glow  { border:1px solid #aaa; background:#0a0a0a; box-shadow:0 0 8px rgba(170,170,170,0.15); }
+  .prev-card-dash  { border:1px dashed #333; background:#080808; }
+  .prev-card-thick { border:3px solid #333; background:#050505; border-radius:0; }
+  .prev-card-retro { border:1px solid #555; background:#0d0d00; }
+  .prev-card-neon  { border:1px solid #0f0; background:#000; box-shadow:0 0 6px #0f04; }
+
+  .prev-deco-none     { background:#0a0a0a; }
+  .prev-deco-corner   { background:#0a0a0a; border:1px solid #222; }
+  .prev-deco-corner::before,.prev-deco-corner::after {
+    content:''; position:absolute; width:8px; height:8px;
+    border-color:#666; border-style:solid; border-width:0;
+  }
+  .prev-deco-corner::before { top:4px; left:4px; border-top-width:1px; border-left-width:1px; }
+  .prev-deco-corner::after  { bottom:4px; right:4px; border-bottom-width:1px; border-right-width:1px; }
+  .prev-deco-scan { background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.01) 3px,rgba(255,255,255,0.01) 4px); }
+  .prev-deco-vignette { background:radial-gradient(ellipse at center,#111 60%,#000 100%); }
+  .prev-deco-grid { background-image:linear-gradient(#1a1a1a 1px,transparent 1px),linear-gradient(90deg,#1a1a1a 1px,transparent 1px); background-size:16px 16px; }
+  .prev-deco-cross { background-image:radial-gradient(#222 1px,transparent 1px); background-size:12px 12px; }
+  .prev-deco-crt  { background:#050505; border-radius:4px; box-shadow:inset 0 0 20px rgba(0,0,0,0.8); }
+
+  .prev-cur-default { cursor:default; }
+  .prev-cur-block   { cursor:none; } /* shown symbolically */
+  .prev-cur-cross   { cursor:crosshair; }
+  .prev-cur-text    { cursor:text; }
+  .prev-cur-wait    { cursor:wait; }
+
+  .prev-accent-aaa { color:#aaa; }
+  .prev-accent-0f0 { color:#0f0; }
+  .prev-accent-0ff { color:#0ff; }
+  .prev-accent-f80 { color:#f80; }
+  .prev-accent-f0f { color:#f0f; }
+  .prev-accent-ff0 { color:#ff0; }
+  .prev-accent-f00 { color:#f00; }
+  .prev-accent-88f { color:#88f; }
+
+  @media (max-width: 400px) {
+    #shop-grid { grid-template-columns: repeat(2, 1fr); gap:8px; padding:12px; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<svg style="display:none">
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feBlend in="SourceGraphic" mode="overlay"/></filter>
+</svg>
+
+<div id="header">
+  <button id="back-btn" onclick="window.location.href='index.html'">← indietro</button>
+  <div id="shop-title">[ shop ]</div>
+  <div id="points-hud">pts: <span id="pts-val">0</span></div>
+</div>
+
+<div id="tabs">
+  <button class="tab active" onclick="switchTab('bg')">sfondo</button>
+  <button class="tab" onclick="switchTab('font')">font</button>
+  <button class="tab" onclick="switchTab('card')">card</button>
+  <button class="tab" onclick="switchTab('deco')">arredamento</button>
+  <button class="tab" onclick="switchTab('accent')">colore</button>
+  <button class="tab" onclick="switchTab('cursor')">cursore</button>
+</div>
+
+<div id="shop-grid"></div>
+<div id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────
+//  DATI
+// ──────────────────────────────────────────────
+const CATALOG = {
+  bg: [
+    { id:'bg-dark',   name:'void',        desc:'nero assoluto, niente rumore',      price:0,   css:'--bg:#000',    previewClass:'prev-dark',   previewText:'▓' },
+    { id:'bg-matrix', name:'matrix',      desc:'verde profondo, hacker puro',       price:80,  css:'--bg:#001200', previewClass:'prev-matrix', previewText:'▒' },
+    { id:'bg-blood',  name:'crimson',     desc:'rosso scuro come la notte',         price:80,  css:'--bg:#120000', previewClass:'prev-blood',  previewText:'▒' },
+    { id:'bg-deep',   name:'abisso',      desc:'blu notte infinita',                price:80,  css:'--bg:#00001a', previewClass:'prev-deep',   previewText:'▒' },
+    { id:'bg-ash',    name:'cenere',      desc:'righe orizzontali sottili',         price:120, css:'--bg:#0e0e0e;--bg-extra:lines', previewClass:'prev-ash', previewText:'≡' },
+    { id:'bg-amber',  name:'ambra',       desc:'calore terminale anni 80',          price:100, css:'--bg:#100800', previewClass:'prev-amber',  previewText:'▒' },
+    { id:'bg-ice',    name:'ghiaccio',    desc:'blu ghiacciato subzero',            price:100, css:'--bg:#00080f', previewClass:'prev-ice',    previewText:'▒' },
+    { id:'bg-purple', name:'viola notte', desc:'profondità viola-nera',             price:100, css:'--bg:#0a0010', previewClass:'prev-purple', previewText:'▒' },
+  ],
+  font: [
+    { id:'font-mono',    name:'monospace',      desc:'default di sistema, classico',   price:0,   css:'--font:monospace',                  previewClass:'prev-mono',    previewText:'Aa' },
+    { id:'font-courier', name:'courier',        desc:'macchina da scrivere digitale',  price:60,  css:"--font:'Courier New',monospace",    previewClass:'prev-courier', previewText:'Aa' },
+    { id:'font-vt323',   name:'VT323',          desc:'display a pixel stile arcade',   price:100, css:"--font:'VT323',monospace",          previewClass:'prev-vt323',   previewText:'Aa' },
+    { id:'font-share',   name:'Share Tech',     desc:'terminale moderno e preciso',    price:100, css:"--font:'Share Tech Mono',monospace", previewClass:'prev-share',  previewText:'Aa' },
+    { id:'font-ibm',     name:'IBM Plex Mono',  desc:'elegante, da ufficio di stato',  price:120, css:"--font:'IBM Plex Mono',monospace",  previewClass:'prev-ibm',    previewText:'Aa' },
+  ],
+  card: [
+    { id:'card-plain',  name:'flat',        desc:'bordo sottile, zero fronzoli',    price:0,   css:'--card-bg:#0a0a0a;--card-border:#222;--card-radius:0;--card-shadow:none;--card-border-style:solid;--card-border-w:1px', previewClass:'prev-card-plain',  previewText:'[ ]' },
+    { id:'card-double', name:'doppio',      desc:'bordo doppio, aria retrò',        price:70,  css:'--card-bg:#080808;--card-border:#444;--card-radius:0;--card-shadow:none;--card-border-style:double;--card-border-w:2px', previewClass:'prev-card-double', previewText:'╔╗' },
+    { id:'card-glow',   name:'glow',        desc:'alone luminoso attorno al box',   price:110, css:'--card-bg:#0a0a0a;--card-border:#aaa;--card-radius:2px;--card-shadow:0 0 10px rgba(170,170,170,0.12);--card-border-style:solid;--card-border-w:1px', previewClass:'prev-card-glow', previewText:'◌' },
+    { id:'card-dash',   name:'tratteggio',  desc:'bordo tratteggiato, grezzo',      price:80,  css:'--card-bg:#080808;--card-border:#333;--card-radius:0;--card-shadow:none;--card-border-style:dashed;--card-border-w:1px', previewClass:'prev-card-dash', previewText:'- -' },
+    { id:'card-thick',  name:'heavy',       desc:'bordo spesso e solido',           price:90,  css:'--card-bg:#050505;--card-border:#333;--card-radius:0;--card-shadow:none;--card-border-style:solid;--card-border-w:3px', previewClass:'prev-card-thick', previewText:'███' },
+    { id:'card-retro',  name:'terminale',   desc:'verde-giallo, sapore anni 70',    price:100, css:'--card-bg:#0d0d00;--card-border:#555;--card-radius:0;--card-shadow:none;--card-border-style:solid;--card-border-w:1px', previewClass:'prev-card-retro', previewText:'▐▌' },
+    { id:'card-neon',   name:'neon verde',  desc:'bordo fluorescente che brucia',   price:150, css:'--card-bg:#000;--card-border:#0f0;--card-radius:0;--card-shadow:0 0 8px rgba(0,255,0,0.25);--card-border-style:solid;--card-border-w:1px', previewClass:'prev-card-neon', previewText:'█' },
+  ],
+  deco: [
+    { id:'deco-none',     name:'nessuno',      desc:'spazio vuoto, silenzio totale',     price:0,   css:'--deco:none',       previewClass:'prev-deco-none',    previewText:'·' },
+    { id:'deco-corner',   name:'angoli',       desc:'decorazione angolare sulle card',   price:90,  css:'--deco:corner',     previewClass:'prev-deco-corner',  previewText:'⌐ ¬' },
+    { id:'deco-scan',     name:'scanlines',    desc:'righe CRT orizzontali sottili',     price:100, css:'--deco:scan',       previewClass:'prev-deco-scan',    previewText:'≡≡≡' },
+    { id:'deco-vignette', name:'vignetta',     desc:'sfondo più scuro ai bordi',         price:80,  css:'--deco:vignette',   previewClass:'prev-deco-vignette',previewText:'◉' },
+    { id:'deco-grid',     name:'griglia',      desc:'reticolo sottile sullo sfondo',     price:110, css:'--deco:grid',       previewClass:'prev-deco-grid',    previewText:'⊞' },
+    { id:'deco-cross',    name:'puntinato',    desc:'pattern a croce sullo sfondo',      price:110, css:'--deco:cross',      previewClass:'prev-deco-cross',   previewText:'∷' },
+    { id:'deco-crt',      name:'monitor CRT',  desc:'effetto tubo catodico vintage',     price:140, css:'--deco:crt',        previewClass:'prev-deco-crt',     previewText:'⌂' },
+  ],
+  accent: [
+    { id:'acc-aaa', name:'grigio',      desc:'colore di default, sobrio',         price:0,   css:'--accent:#aaa;--fg:#aaa', previewClass:'prev-accent-aaa', previewText:'●' },
+    { id:'acc-0f0', name:'verde',       desc:'terminale classico unix',           price:70,  css:'--accent:#0f0;--fg:#0d0', previewClass:'prev-accent-0f0', previewText:'●' },
+    { id:'acc-0ff', name:'ciano',       desc:'freddo come acciaio liquido',       price:70,  css:'--accent:#0ff;--fg:#0cc', previewClass:'prev-accent-0ff', previewText:'●' },
+    { id:'acc-f80', name:'arancio',     desc:'caldo come fiamma bassa',           price:70,  css:'--accent:#f80;--fg:#c60', previewClass:'prev-accent-f80', previewText:'●' },
+    { id:'acc-f0f', name:'magenta',     desc:'distopia neon anni 80',             price:80,  css:'--accent:#f0f;--fg:#c0c', previewClass:'prev-accent-f0f', previewText:'●' },
+    { id:'acc-ff0', name:'giallo',      desc:'avvertimento permanente',           price:80,  css:'--accent:#ff0;--fg:#cc0', previewClass:'prev-accent-ff0', previewText:'●' },
+    { id:'acc-f00', name:'rosso',       desc:'errore critico di sistema',         price:80,  css:'--accent:#f00;--fg:#c00', previewClass:'prev-accent-f00', previewText:'●' },
+    { id:'acc-88f', name:'indaco',      desc:'viola-blu etereo',                  price:80,  css:'--accent:#88f;--fg:#66d', previewClass:'prev-accent-88f', previewText:'●' },
+  ],
+  cursor: [
+    { id:'cur-default', name:'freccia',    desc:'cursore di sistema standard',   price:0,   css:'--cursor:default',    previewClass:'prev-cur-default', previewText:'↖' },
+    { id:'cur-cross',   name:'mirino',     desc:'crosshair preciso',             price:60,  css:'--cursor:crosshair',  previewClass:'prev-cur-cross',   previewText:'⊕' },
+    { id:'cur-text',    name:'testo',      desc:'barra verticale da editor',     price:50,  css:'--cursor:text',       previewClass:'prev-cur-text',    previewText:'I' },
+    { id:'cur-none',    name:'invisibile', desc:'cursore nascosto, solo stile',  price:120, css:'--cursor:none',       previewClass:'prev-cur-default', previewText:'·' },
+    { id:'cur-wait',    name:'attesa',     desc:'sempre in caricamento',         price:80,  css:'--cursor:wait',       previewClass:'prev-cur-wait',    previewText:'⌛' },
+  ],
+};
+
+const TAB_LABELS = { bg:'sfondo', font:'font', card:'card', deco:'arredamento', accent:'colore', cursor:'cursore' };
+
+// ──────────────────────────────────────────────
+//  STORAGE
+// ──────────────────────────────────────────────
+function getPoints()     { return parseInt(localStorage.getItem('campo-points') || '0'); }
+function spendPoints(n)  { localStorage.setItem('campo-points', getPoints() - n); updateHUD(); }
+function updateHUD()     { document.getElementById('pts-val').textContent = getPoints(); }
+
+function getOwned()      { return JSON.parse(localStorage.getItem('shop-owned') || '{}'); }
+function setOwned(o)     { localStorage.setItem('shop-owned', JSON.stringify(o)); }
+function getEquipped()   { return JSON.parse(localStorage.getItem('shop-equipped') || '{}'); }
+function setEquipped(e)  { localStorage.setItem('shop-equipped', JSON.stringify(e)); }
+
+function own(id)     { const o = getOwned(); o[id] = true; setOwned(o); }
+function isOwned(id) { return !!getOwned()[id]; }
+function equip(id, cat) {
+  const e = getEquipped();
+  e[cat] = id;
+  setEquipped(e);
+}
+function isEquipped(id, cat) { return getEquipped()[cat] === id; }
+
+// ──────────────────────────────────────────────
+//  RENDER
+// ──────────────────────────────────────────────
+let currentTab = 'bg';
+
+function switchTab(cat) {
+  currentTab = cat;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', Object.keys(CATALOG)[i] === cat);
+  });
+  renderGrid(cat);
+}
+
+function renderGrid(cat) {
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML = '';
+  CATALOG[cat].forEach(item => {
+    const owned    = isOwned(item.id)    || item.price === 0;
+    const equipped = isEquipped(item.id, cat);
+    const card = document.createElement('div');
+    card.className = 'item-card' + (owned ? ' owned' : '') + (equipped ? ' equipped' : '');
+
+    card.innerHTML = `
+      <div class="preview ${item.previewClass}" style="font-family:${cat==='font'?'inherit':'inherit'}">${item.previewText}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-desc">${item.desc}</div>
+      <div class="item-footer">
+        <span class="item-price ${item.price===0?'free':''}">${item.price===0?'gratis':item.price+' pt'}</span>
+        ${owned
+          ? (equipped ? `<span class="owned-label">equipaggiato</span>` : `<button class="buy-btn equip-btn" onclick="doEquip('${item.id}','${cat}')">equip</button>`)
+          : `<button class="buy-btn" onclick="doBuy('${item.id}','${cat}')">acquista</button>`
+        }
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ──────────────────────────────────────────────
+//  ACTIONS
+// ──────────────────────────────────────────────
+function doBuy(id, cat) {
+  const item = CATALOG[cat].find(i => i.id === id);
+  if (!item) return;
+  if (isOwned(id)) return;
+  if (getPoints() < item.price) { toast('punti insufficienti'); return; }
+  spendPoints(item.price);
+  own(id);
+  equip(id, cat);
+  renderGrid(cat);
+  toast(`"${item.name}" acquistato ed equipaggiato`);
+}
+
+function doEquip(id, cat) {
+  const item = CATALOG[cat].find(i => i.id === id);
+  if (!item) return;
+  equip(id, cat);
+  renderGrid(cat);
+  toast(`"${item.name}" equipaggiato`);
+}
+
+// ──────────────────────────────────────────────
+//  TOAST
+// ──────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ──────────────────────────────────────────────
+//  INIT: ensure free items owned
+// ──────────────────────────────────────────────
+Object.entries(CATALOG).forEach(([cat, items]) => {
+  items.forEach(item => {
+    if (item.price === 0 && !isOwned(item.id)) own(item.id);
+    // ensure each cat has at least a default equipped
+    const e = getEquipped();
+    if (!e[cat]) { equip(item.id, cat); }
+  });
+});
+
+updateHUD();
+renderGrid('bg');
+</script>
+</body>
+</html>

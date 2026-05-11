@@ -4,38 +4,142 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --bg: #000;
+    --fg: #aaa;
+    --accent: #aaa;
+    --card-bg: #0a0a0a;
+    --card-border: #222;
+    --card-radius: 0px;
+    --card-shadow: none;
+    --card-border-style: solid;
+    --card-border-w: 1px;
+    --font: monospace;
+    --cursor: default;
+    --deco: none;
+  }
+
+  * { box-sizing: border-box; }
+
   body {
-    background: #000;
-    color: #aaa;
-    font-family: monospace;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
     font-size: 16px;
     padding: 20px;
     margin: 0;
+    cursor: var(--cursor);
     -webkit-tap-highlight-color: transparent;
-  }
-  #points-bar { margin-bottom: 12px; color: #888; font-size: 14px; }
-  #screen { white-space: pre; }
-  #input-line { margin-top: 10px; }
-  input[type=text] {
-    background: #000; color: #aaa; border: none; outline: none;
-    font-family: monospace; font-size: 16px; caret-color: #aaa; width: 3ch;
+    min-height: 100vh;
+    transition: background 0.4s, color 0.4s;
+    position: relative;
   }
 
-  /* bottoni menu mobile */
+  /* ── DECO LAYERS ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body.deco-scan::before {
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 3px,
+      rgba(255,255,255,0.015) 3px, rgba(255,255,255,0.015) 4px
+    );
+  }
+  body.deco-vignette::before {
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%);
+  }
+  body.deco-grid::before {
+    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  body.deco-cross::before {
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+  body.deco-crt {
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.8);
+  }
+  body.deco-lines {
+    background-image: repeating-linear-gradient(
+      0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px
+    );
+  }
+  body.deco-corner #screen::before, body.deco-corner #screen::after {
+    content: ''; position: absolute;
+    width: 12px; height: 12px;
+    border-color: var(--accent); border-style: solid; border-width: 0;
+    opacity: 0.35;
+  }
+  body.deco-corner #screen { position: relative; }
+  body.deco-corner #screen::before { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+  body.deco-corner #screen::after  { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+
+  /* ── CONTENT ── */
+  #points-bar {
+    margin-bottom: 12px;
+    color: var(--accent);
+    font-size: 14px;
+    position: relative; z-index: 1;
+  }
+  #screen {
+    white-space: pre;
+    position: relative; z-index: 1;
+    padding: 4px 0;
+  }
+  #input-line {
+    margin-top: 10px;
+    position: relative; z-index: 1;
+  }
+  input[type=text] {
+    background: transparent;
+    color: var(--fg);
+    border: none; outline: none;
+    font-family: var(--font);
+    font-size: 16px;
+    caret-color: var(--accent);
+    width: 3ch;
+  }
+
+  /* ── GAME CARDS (stile menu) ── */
+  .game-line {
+    display: inline;
+  }
+
+  /* ── MOBILE BUTTONS ── */
   #menu-btns {
     display: none;
     flex-direction: column;
     gap: 8px;
     margin-top: 12px;
-    max-width: 240px;
+    max-width: 260px;
+    position: relative; z-index: 1;
   }
   .menu-btn {
-    background: #111; color: #aaa; border: 1px solid #333;
-    font-family: monospace; font-size: 15px; padding: 10px 16px;
-    cursor: pointer; text-align: left; border-radius: 2px;
+    background: var(--card-bg);
+    color: var(--fg);
+    border-style: var(--card-border-style);
+    border-width: var(--card-border-w);
+    border-color: var(--card-border);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    font-family: var(--font);
+    font-size: 15px;
+    padding: 10px 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, color 0.15s;
   }
-  .menu-btn:active { background: #222; }
+  .menu-btn:active, .menu-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 
   @media (pointer: coarse) {
     #input-line { display: none; }
@@ -50,13 +154,103 @@
 <div id="input-line"><span id="prompt"></span><input type="text" id="cmd" maxlength="1" autocomplete="off" /></div>
 <div id="menu-btns">
   <button class="menu-btn" onclick="menuChoice('1')">1) figet</button>
-  <button class="menu-btn" onclick="menuChoice('2')">2) shop</button>
-  <button class="menu-btn" onclick="menuChoice('3')">3) casino</button>
-  <button class="menu-btn" onclick="menuChoice('4')">4) battaglie</button>
-  <button class="menu-btn" onclick="menuChoice('5')">5) campo di battaglia</button>
+  <button class="menu-btn" onclick="menuChoice('2')">2) casino</button>
+  <button class="menu-btn" onclick="menuChoice('3')">3) battaglie</button>
+  <button class="menu-btn" onclick="menuChoice('4')">4) campo di battaglia</button>
+  <button class="menu-btn" onclick="menuChoice('5')">5) shop</button>
 </div>
 
 <script>
+// ──────────────────────────────────────────────
+//  COSMETICI
+// ──────────────────────────────────────────────
+const CSS_MAP = {
+  bg: {
+    'bg-dark':   '--bg:#000',
+    'bg-matrix': '--bg:#001200',
+    'bg-blood':  '--bg:#120000',
+    'bg-deep':   '--bg:#00001a',
+    'bg-ash':    '--bg:#0e0e0e',
+    'bg-amber':  '--bg:#100800',
+    'bg-ice':    '--bg:#00080f',
+    'bg-purple': '--bg:#0a0010',
+  },
+  font: {
+    'font-mono':    '--font:monospace',
+    'font-courier': "--font:'Courier New',monospace",
+    'font-vt323':   "--font:'VT323',monospace",
+    'font-share':   "--font:'Share Tech Mono',monospace",
+    'font-ibm':     "--font:'IBM Plex Mono',monospace",
+  },
+  card: {
+    'card-plain':  '--card-bg:#0a0a0a;--card-border:#222;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-double': '--card-bg:#080808;--card-border:#444;--card-radius:0px;--card-shadow:none;--card-border-style:double;--card-border-w:2px',
+    'card-glow':   '--card-bg:#0a0a0a;--card-border:#aaa;--card-radius:2px;--card-shadow:0 0 10px rgba(170,170,170,0.12);--card-border-style:solid;--card-border-w:1px',
+    'card-dash':   '--card-bg:#080808;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:dashed;--card-border-w:1px',
+    'card-thick':  '--card-bg:#050505;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:3px',
+    'card-retro':  '--card-bg:#0d0d00;--card-border:#555;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-neon':   '--card-bg:#000;--card-border:#0f0;--card-radius:0px;--card-shadow:0 0 8px rgba(0,255,0,0.25);--card-border-style:solid;--card-border-w:1px',
+  },
+  accent: {
+    'acc-aaa': '--accent:#aaa;--fg:#aaa',
+    'acc-0f0': '--accent:#0f0;--fg:#0d0',
+    'acc-0ff': '--accent:#0ff;--fg:#0cc',
+    'acc-f80': '--accent:#f80;--fg:#c60',
+    'acc-f0f': '--accent:#f0f;--fg:#c0c',
+    'acc-ff0': '--accent:#ff0;--fg:#cc0',
+    'acc-f00': '--accent:#f00;--fg:#c00',
+    'acc-88f': '--accent:#88f;--fg:#66d',
+  },
+  cursor: {
+    'cur-default': '--cursor:default',
+    'cur-cross':   '--cursor:crosshair',
+    'cur-text':    '--cursor:text',
+    'cur-none':    '--cursor:none',
+    'cur-wait':    '--cursor:wait',
+  },
+  deco: {
+    'deco-none':     'none',
+    'deco-corner':   'corner',
+    'deco-scan':     'scan',
+    'deco-vignette': 'vignette',
+    'deco-grid':     'grid',
+    'deco-cross':    'cross',
+    'deco-crt':      'crt',
+  },
+};
+
+function applyCosmetics() {
+  const equipped = JSON.parse(localStorage.getItem('shop-equipped') || '{}');
+  const root = document.documentElement;
+
+  ['bg','font','card','accent','cursor'].forEach(cat => {
+    const id = equipped[cat];
+    if (!id || !CSS_MAP[cat][id]) return;
+    CSS_MAP[cat][id].split(';').forEach(rule => {
+      const [prop, val] = rule.split(':');
+      if (prop && val !== undefined) root.style.setProperty(prop.trim(), val.trim());
+    });
+  });
+
+  // deco: body classes
+  const body = document.body;
+  body.classList.remove('deco-scan','deco-vignette','deco-grid','deco-cross','deco-crt','deco-corner','deco-lines');
+  const decoId = equipped['deco'];
+  if (decoId && CSS_MAP.deco[decoId]) {
+    const dv = CSS_MAP.deco[decoId];
+    if (dv !== 'none') body.classList.add('deco-' + dv);
+  }
+
+  // bg-ash ha anche linee
+  const bgId = equipped['bg'];
+  if (bgId === 'bg-ash') body.classList.add('deco-lines');
+}
+
+applyCosmetics();
+
+// ──────────────────────────────────────────────
+//  GIOCO
+// ──────────────────────────────────────────────
 const pointsCount = document.getElementById('points-count');
 function getPoints()       { return parseInt(localStorage.getItem('campo-points') || '0'); }
 function updatePointsBar() { pointsCount.textContent = getPoints(); }
@@ -68,7 +262,7 @@ const cmdInput = document.getElementById('cmd');
 
 function showMenu() {
   screen.textContent =
-    'scegli un gioco\n1) figet\n2) shop\n3) casino\n4) battaglie\n5) campo di battaglia\n';
+    'scegli un gioco\n1) figet\n2) casino\n3) battaglie\n4) campo di battaglia\n5) shop\n';
   promptEl.textContent = 'scelta: ';
   cmdInput.value = '';
   cmdInput.focus();
@@ -76,10 +270,10 @@ function showMenu() {
 
 function menuChoice(val) {
   if      (val === '1') window.location.href = 'figget.html';
-  else if (val === '2') { screen.textContent = 'lascialo non implementato\n'; promptEl.textContent = ''; setTimeout(showMenu, 1000); }
-  else if (val === '3') window.location.href = 'casino.html';
-  else if (val === '4') window.location.href = 'index_battaglie.html';
-  else if (val === '5') window.location.href = 'campo.html';
+  else if (val === '2') window.location.href = 'casino.html';
+  else if (val === '3') window.location.href = 'index_battaglie.html';
+  else if (val === '4') window.location.href = 'campo.html';
+  else if (val === '5') window.location.href = 'shop.html';
   else { screen.textContent = 'scelta non valida\n'; promptEl.textContent = ''; setTimeout(showMenu, 800); }
 }
 
