@@ -715,7 +715,7 @@
       <div class="dice-display">
         <div class="die" id="die1">⚀</div>
       </div>
-      <button class="action-btn" onclick="playDadi()">LANCIA IL DADO</button>
+      <button class="action-btn" id="btn-dadi" onclick="playDadi()">LANCIA IL DADO</button>
     </div>
     <div id="dadi-result-area" style="display:none;margin-top:10px">
       <div id="dadi-big-result" style="text-align:center;padding:40px 20px;border-radius:4px;margin-bottom:15px;font-family:'Playfair Display',serif;">
@@ -1042,6 +1042,7 @@ function convertFishToPoints() {
   localStorage.setItem('casino_fish', fish);
   addPoints(pointsGained);
   showToast('Convertiti ' + fishSpent + ' fish in ' + pointsGained + ' points!');
+  if (fish < 10) setTimeout(() => document.getElementById('game-over').classList.add('active'), 800);
 }
 
 // ===== FISH =====
@@ -1132,6 +1133,7 @@ function openGame(name) {
 }
 function closeGame(name) {
   document.getElementById('modal-' + name).classList.remove('active');
+  if (name === 'cavalli' && raceInterval) { clearInterval(raceInterval); raceInterval = null; }
 }
 
 // ===== HELPERS =====
@@ -1178,6 +1180,7 @@ function playMoneta() {
   if (monetaChoice === -1) { showToast('Scegli testa o croce!'); return; }
   if (!validateBet('moneta')) return;
   const bet = getBet('moneta');
+  document.getElementById('btn-moneta').disabled = true;
   const result = Math.floor(Math.random() * 2);
   const names = ['Testa', 'Croce'];
   const icons = ['👑', '⚔️'];
@@ -1209,6 +1212,7 @@ function playMoneta() {
       fishChange.style.color = '#ff6b6b';
       if (fish < 10) setTimeout(() => document.getElementById('game-over').classList.add('active'), 1800);
     }
+    document.getElementById('btn-moneta').disabled = false;
     document.getElementById('moneta-game-content').style.display = 'none';
     document.getElementById('moneta-result-area').style.display = 'block';
   }, 900);
@@ -1241,6 +1245,7 @@ function playDadi() {
   if (dadiChoice === 4 && dadiNumber === -1) { showToast('Scegli un numero!'); return; }
   if (!validateBet('dadi')) return;
   const bet = getBet('dadi');
+  document.getElementById('btn-dadi').disabled = true;
   const roll = Math.floor(Math.random() * 6) + 1;
   const die = document.getElementById('die1');
   die.classList.add('rolling');
@@ -1279,6 +1284,7 @@ function playDadi() {
       fishChange.style.color = '#ff6b6b';
       if (fish < 10) setTimeout(() => document.getElementById('game-over').classList.add('active'), 1800);
     }
+    document.getElementById('btn-dadi').disabled = false;
     document.getElementById('dadi-game-content').style.display = 'none';
     document.getElementById('dadi-result-area').style.display = 'block';
   }, 700);
