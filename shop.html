@@ -220,6 +220,20 @@ const ITEMS = [
   /* ── DESCRIZIONI ── */
   { id:'desc-show', cat:'desc', name:'visibili', cost:0,  preview:'desc:mostra',  tag:'default' },
   { id:'desc-hide', cat:'desc', name:'nascoste', cost:10, preview:'desc:nascondi',tag:'minimal' },
+
+  /* ── MUSICA HUB ── */
+  { id:'mus-none',      cat:'music', name:'silenzio',                                                          cost:0,   file:null,            tag:'default' },
+  { id:'mus-gtheme',    cat:'music', name:'balatro menù ost',                                                  cost:20,  file:'gtheme.mp3',    tag:'menu' },
+  { id:'mus-play',      cat:'music', name:'orbital theater — HASTE',                                           cost:30,  file:'play.mp3',      tag:'hub' },
+  { id:'mus-boss',      cat:'music', name:'burning eyes remix — Claire Noelle',                                cost:40,  file:'boss.mp3',      tag:'battaglia' },
+  { id:'mus-jessie',    cat:'music', name:'boss battle against that random npc — Snazzy Spider',               cost:50,  file:'Jessie.mp3',    tag:'jessie' },
+  { id:'mus-jonathan',  cat:'music', name:'black knife — toby fox',                                            cost:50,  file:'Jonathan.mp3',  tag:'jonathan' },
+  { id:'mus-rey',       cat:'music', name:'TOKYOVANIA — charty',                                               cost:50,  file:'rey.mp3',       tag:'rey' },
+  { id:'mus-kira',      cat:'music', name:'i won\'t let you go — stuffed dove',                                cost:50,  file:'kira.mp3',      tag:'kira' },
+  { id:'mus-mario',     cat:'music', name:'hammer of justice — logan feece music',                             cost:50,  file:'mario.mp3',     tag:'mario' },
+  { id:'mus-lucie',     cat:'music', name:'creator — lena raine',                                              cost:50,  file:'lucie.mp3',     tag:'lucie' },
+  { id:'mus-kuragami',  cat:'music', name:'dont leave, please — MONGOPSY',                                     cost:80,  file:'kuragami.mp3',  tag:'kuragami' },
+  { id:'mus-system',    cat:'music', name:'Love Me Back (A Caine Megalo Strike Back) — 𝓙𝓮𝓶dotpng',           cost:150, file:'system.mp3',    tag:'???' },
 ];
 
 const CSS_MAP = {
@@ -271,6 +285,7 @@ const CSS_MAP = {
 const CAT_LABELS = {
   bg:'sfondo', font:'carattere', card:'stile card', accent:'accento',
   cursor:'cursore', deco:'effetto schermo', menu:'layout menu', desc:'descrizioni giochi',
+  music:'musica hub',
 };
 
 /* ══════════════════════════════════════════════
@@ -278,9 +293,9 @@ const CAT_LABELS = {
 ══════════════════════════════════════════════ */
 function getPoints(){ return parseInt(localStorage.getItem('campo-points')||'0'); }
 function setPoints(n){ localStorage.setItem('campo-points',n); }
-function getPurchased(){ return JSON.parse(localStorage.getItem('shop-purchased')||'["bg-dark","font-mono","card-plain","acc-aaa","cur-default","deco-none","menu-list","desc-show"]'); }
+function getPurchased(){ return JSON.parse(localStorage.getItem('shop-purchased')||'["bg-dark","font-mono","card-plain","acc-aaa","cur-default","deco-none","menu-list","desc-show","mus-none"]'); }
 function setPurchased(a){ localStorage.setItem('shop-purchased',JSON.stringify(a)); }
-function getEquipped(){ return JSON.parse(localStorage.getItem('shop-equipped')||'{"bg":"bg-dark","font":"font-mono","card":"card-plain","accent":"acc-aaa","cursor":"cur-default","deco":"deco-none","menu":"menu-list","desc":"desc-show"}'); }
+function getEquipped(){ return JSON.parse(localStorage.getItem('shop-equipped')||'{"bg":"bg-dark","font":"font-mono","card":"card-plain","accent":"acc-aaa","cursor":"cur-default","deco":"deco-none","menu":"menu-list","desc":"desc-show","music":"mus-none"}'); }
 function setEquipped(o){ localStorage.setItem('shop-equipped',JSON.stringify(o)); }
 
 let pts = getPoints();
@@ -339,6 +354,11 @@ function renderShop(){
         prevHTML = `<span class="prev-text" style="font-size:10px;opacity:.6">${icons[item.id]||'—'}</span>`;
       } else if(cat==='desc'){
         prevHTML = `<span class="prev-text" style="font-size:10px;opacity:.6">${item.id==='desc-show'?'abc...':'abc'}</span>`;
+      } else if(cat==='music'){
+        const isNone = item.id==='mus-none';
+        const isSystem = item.id==='mus-system';
+        prevHTML = `<span class="prev-deco" style="font-size:15px">${isNone?'—':isSystem?'⚠':'♪'}</span>`;
+        prevHTML += `<span class="prev-text" style="font-size:9px;opacity:.5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:90px">${isNone?'nessuna':item.tag}</span>`;
       }
 
       html += `<button class="${cls}" data-id="${item.id}" onclick="handleItem('${item.id}')">
@@ -376,6 +396,7 @@ function handleItem(id){
   equipped[item.cat] = id;
   setEquipped(equipped);
   applyCosmetics();
+  if(item.cat==='music') applyHubMusic();
   renderShop();
   if(owned) notify('equipaggiato: '+item.name);
 }
@@ -583,9 +604,36 @@ function notify(msg){
 }
 
 /* ══════════════════════════════════════════════
+   AUDIO HUB
+══════════════════════════════════════════════ */
+let hubAudio = null;
+function getMusicFile(id){
+  const item = ITEMS.find(i=>i.id===id);
+  return item ? item.file : null;
+}
+function playHubMusic(id){
+  if(hubAudio){ hubAudio.pause(); hubAudio.src=''; hubAudio=null; }
+  const file = getMusicFile(id);
+  if(!file) return;
+  hubAudio = new Audio(file);
+  hubAudio.loop = true;
+  hubAudio.volume = 0.45;
+  hubAudio.play().catch(()=>{});
+}
+function applyHubMusic(){
+  const eq = getEquipped();
+  const musId = eq['music']||'mus-none';
+  // salva anche su localStorage per index.html
+  const item = ITEMS.find(i=>i.id===musId);
+  localStorage.setItem('hub-music', item&&item.file ? item.file : '');
+  playHubMusic(musId);
+}
+
+/* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
 applyCosmetics();
+applyHubMusic();
 renderShop();
 </script>
 </body>

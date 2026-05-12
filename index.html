@@ -164,11 +164,21 @@
   .game-card:hover .card-arrow{opacity:.6;transform:translateX(3px);}
 
   #footer{margin-top:auto;padding-top:32px;font-size:11px;opacity:.18;letter-spacing:3px;z-index:1;position:relative;}
+
+  #music-toggle{
+    position:fixed;bottom:16px;right:16px;
+    background:none;border:none;font-family:var(--font);
+    font-size:16px;color:var(--accent);opacity:0;
+    cursor:pointer;z-index:999;padding:4px 8px;
+    transition:opacity .3s;letter-spacing:1px;
+  }
+  #music-toggle:hover{opacity:.8 !important;}
 </style>
 </head>
 <body>
 <div id="deco-layer"></div>
 <canvas id="sparkle-canvas"></canvas>
+<button id="music-toggle" title="musica">♪</button>
 
 <div id="hub-wrap">
   <div id="header">
@@ -457,6 +467,49 @@ document.getElementById('points-count').textContent=
 function go(href){window.location.href=href;}
 
 applyCosmetics();
+
+/* ══════════════════════════════════════════════
+   MUSICA HUB
+══════════════════════════════════════════════ */
+(function(){
+  const file = localStorage.getItem('hub-music')||'';
+  if(!file) return;
+  // aspetta un gesto utente per partire (autoplay policy)
+  let started = false;
+  function startMusic(){
+    if(started) return;
+    started = true;
+    const audio = new Audio(file);
+    audio.loop = true;
+    audio.volume = 0.45;
+    audio.play().catch(()=>{});
+    // controllo visivo minimo
+    const btn = document.getElementById('music-toggle');
+    if(btn){ btn.style.opacity='1'; btn._audio=audio; }
+  }
+  // prova subito (funziona se l'utente era già sulla pagina)
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const audio = new Audio(file);
+    audio.loop = true; audio.volume = 0.45;
+    const tryPlay = audio.play();
+    if(tryPlay) tryPlay.catch(()=>{
+      // fallback: aspetta click
+      const once = ()=>{ audio.play().catch(()=>{}); document.removeEventListener('click',once); };
+      document.addEventListener('click', once);
+    });
+    const btn = document.getElementById('music-toggle');
+    if(btn){
+      btn.style.opacity='1';
+      btn._audio=audio;
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(audio.paused){ audio.play(); btn.textContent='♪'; }
+        else { audio.pause(); btn.textContent='♩'; }
+      });
+    }
+  });
+})();
+
 </script>
 </body>
 </html>
