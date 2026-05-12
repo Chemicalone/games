@@ -33,20 +33,20 @@
   body.deco-noise #deco-layer{background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:256px 256px;opacity:.06;}
   body.deco-glitch #deco-layer{animation:glitch-bg 7s infinite;}
   @keyframes glitch-bg{0%,94%,100%{opacity:0;transform:none;}95%{opacity:1;background:rgba(255,0,80,.04);transform:translate(-3px,0);}96%{opacity:1;background:rgba(0,255,200,.04);transform:translate(3px,0);}97%{opacity:1;background:rgba(255,255,0,.02);transform:translate(0,2px);}98%{opacity:0;transform:none;}}
-  body.deco-rgb #page-wrap{animation:rgb-shift 10s infinite;}
-  @keyframes rgb-shift{0%,88%,100%{filter:none;}90%{filter:drop-shadow(-2px 0 0 rgba(255,0,0,.45)) drop-shadow(2px 0 0 rgba(0,255,255,.45));}92%{filter:none;}94%{filter:drop-shadow(1px 0 0 rgba(255,0,255,.35)) drop-shadow(-1px 0 0 rgba(0,255,0,.35));}96%{filter:none;}}
+  /* rgb: canvas-based, see JS */
   body.deco-pulse #page-wrap{animation:pulse-glow 3s ease-in-out infinite;}
   @keyframes pulse-glow{0%,100%{filter:drop-shadow(0 0 0px var(--accent));}50%{filter:drop-shadow(0 0 18px var(--accent));}}
   body.deco-static::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;animation:static-fl .08s steps(1) infinite;}
   @keyframes static-fl{0%{opacity:0;}8%{opacity:1;background:rgba(255,255,255,.025);transform:translate(-1px,0);}16%{opacity:0;}55%{opacity:0;}60%{opacity:1;background:rgba(255,255,255,.02);transform:translate(1px,1px);}68%{opacity:0;}100%{opacity:0;}}
+  /* wave: margin-top invece di transform, evita conflitti con overflow:hidden */
   body.deco-wave #page-wrap{animation:wave-float 5s ease-in-out infinite;}
-  @keyframes wave-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  @keyframes wave-float{0%,100%{margin-top:0px;}50%{margin-top:-10px;}}
   body.deco-corner .item-card::before,body.deco-corner .item-card::after{content:'';position:absolute;width:6px;height:6px;border-color:var(--accent);border-style:solid;border-width:0;opacity:0;transition:opacity .15s;}
   body.deco-corner .item-card::before{top:3px;left:3px;border-top-width:1px;border-left-width:1px;}
   body.deco-corner .item-card::after{bottom:3px;right:3px;border-bottom-width:1px;border-right-width:1px;}
   body.deco-corner .item-card:hover::before,body.deco-corner .item-card:hover::after{opacity:.5;}
   #sparkle-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .5s;}
-  body.deco-sparkle #sparkle-canvas,body.deco-aurora #sparkle-canvas,body.deco-rain #sparkle-canvas,body.deco-ember #sparkle-canvas{opacity:1;}
+  body.deco-sparkle #sparkle-canvas,body.deco-aurora #sparkle-canvas,body.deco-rain #sparkle-canvas,body.deco-ember #sparkle-canvas,body.deco-rgb #sparkle-canvas,body.deco-glitch #sparkle-canvas{opacity:1;}
 
   /* ── PAGE ── */
   #page-wrap{position:relative;z-index:1;padding:24px 18px 60px;max-width:600px;margin:0 auto;}
@@ -85,7 +85,6 @@
     font-family:var(--font);font-size:13px;color:var(--fg);
     min-width:120px;max-width:160px;flex:1;
     -webkit-appearance:none;appearance:none;text-align:left;
-    border-left-width:0px; /* will be set by js for equipped */
   }
   .item-card:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);}
   .item-card.equipped{border-color:var(--accent);color:var(--accent);}
@@ -417,6 +416,7 @@ function initCanvas(decoId){
   const cv=document.getElementById('sparkle-canvas');
   const cx=cv.getContext('2d');
   cancelAnimationFrame(raf); parts=[];
+  if(window._cleanRgb){ window._cleanRgb(); window._cleanRgb=null; }
   cv.width=innerWidth; cv.height=innerHeight;
   const W=cv.width,H=cv.height;
   const acc=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#aaa';
@@ -470,7 +470,62 @@ function initCanvas(decoId){
       raf=requestAnimationFrame(loop);
     })();
   }
-  else if(decoId==='deco-ember'){
+  else if(decoId==='deco-rgb'){
+    // vera aberrazione cromatica: cattura il contenuto e lo ridisegna sfasato con mix-blend-mode
+    let t=0;
+    const overlay=document.createElement('canvas');
+    overlay.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2;mix-blend-mode:screen;';
+    overlay.width=W;overlay.height=H;
+    document.body.appendChild(overlay);
+    const ox=overlay.getContext('2d');
+    // usa il canvas esistente (sparkle-canvas) per l'effetto RGB diretto
+    (function loop(){
+      cx.clearRect(0,0,W,H);
+      t+=0.016;
+      const glitchActive = Math.sin(t*0.7)>0.6;
+      if(glitchActive){
+        const shift=2+Math.random()*3;
+        // canale rosso
+        cx.globalCompositeOperation='source-over';
+        cx.fillStyle=`rgba(255,0,0,0.08)`;
+        cx.fillRect(-shift,0,W,H);
+        // canale ciano
+        cx.fillStyle=`rgba(0,255,255,0.08)`;
+        cx.fillRect(shift,0,W,H);
+        // linee orizzontali di disturbo
+        const lines=Math.floor(Math.random()*4);
+        for(let l=0;l<lines;l++){
+          const ly=Math.random()*H;
+          const lh=1+Math.random()*3;
+          cx.fillStyle=`rgba(255,255,255,${0.03+Math.random()*0.05})`;
+          cx.fillRect(0,ly,W,lh);
+        }
+      }
+      raf=requestAnimationFrame(loop);
+    })();
+    // pulisci overlay extra se si cambia effetto
+    const origInit=window._cleanRgb;
+    window._cleanRgb=()=>{ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+  }
+  else if(decoId==='deco-glitch'){
+    let t=0;
+    (function loop(){
+      cx.clearRect(0,0,W,H);
+      t+=0.016;
+      if(Math.random()<0.04){
+        // striscia di disturbo casuale
+        const y=Math.random()*H;
+        const h=2+Math.random()*12;
+        const xoff=(Math.random()-0.5)*20;
+        cx.fillStyle=`rgba(255,${Math.random()*100|0},${Math.random()*100|0},0.12)`;
+        cx.fillRect(xoff,y,W,h);
+        // blocco RGB
+        cx.fillStyle=`rgba(0,255,200,0.06)`;
+        cx.fillRect(-xoff*0.5,y+h,W,h*0.5);
+      }
+      raf=requestAnimationFrame(loop);
+    })();
+  }
     for(let i=0;i<50;i++) parts.push(mkEmber(W,H,acc));
     (function loop(){
       cx.clearRect(0,0,W,H);
