@@ -1036,7 +1036,7 @@ function convertFishToPoints() {
   if (fish < 100) { showToast('Servono almeno 100 fish per convertire.'); return; }
   const convertible = Math.floor(fish / 100);
   const fishSpent = convertible * 100;
-  const pointsGained = convertible * 10;
+  const pointsGained = convertible * 1;
   fish -= fishSpent;
   document.getElementById('fish-count').textContent = fish;
   localStorage.setItem('casino_fish', fish);
