@@ -384,35 +384,51 @@ function initCanvas(decoId){
     (function loop(){
       cx.clearRect(0,0,W,H);
       t+=0.016;
-      if(Math.sin(t*0.7)>0.55){
-        const shift=2+Math.random()*3;
-        cx.fillStyle=`rgba(255,0,0,0.07)`;
-        cx.fillRect(-shift,0,W,H);
-        cx.fillStyle=`rgba(0,255,255,0.07)`;
-        cx.fillRect(shift,0,W,H);
-        const lines=Math.floor(Math.random()*3);
-        for(let l=0;l<lines;l++){
+      if(Math.sin(t*0.9)>0.45 || Math.sin(t*2.3)>0.8){
+        const shift=3+Math.random()*5;
+        cx.globalAlpha=0.18;
+        cx.fillStyle='rgb(255,0,0)';
+        cx.fillRect(0,0,shift,H);
+        cx.fillStyle='rgb(0,255,255)';
+        cx.fillRect(W-shift,0,shift,H);
+        const nb=1+Math.floor(Math.random()*4);
+        for(let l=0;l<nb;l++){
           const ly=Math.random()*H;
-          cx.fillStyle=`rgba(255,255,255,${0.03+Math.random()*0.04})`;
-          cx.fillRect(0,ly,W,1+Math.random()*3);
+          const lh=1+Math.random()*4;
+          const lx=(Math.random()-0.5)*shift*2;
+          cx.globalAlpha=0.12+Math.random()*0.1;
+          cx.fillStyle=Math.random()>0.5?'rgb(255,0,100)':'rgb(0,255,200)';
+          cx.fillRect(lx,ly,W,lh);
         }
+        cx.globalAlpha=1;
       }
       raf=requestAnimationFrame(loop);
     })();
   }
   else if(decoId==='deco-glitch'){
-    let t=0;
+    let t=0, glitchTimer=0;
     (function loop(){
       cx.clearRect(0,0,W,H);
-      t+=0.016;
-      if(Math.random()<0.05){
-        const y=Math.random()*H;
-        const h=2+Math.random()*10;
-        const xoff=(Math.random()-0.5)*18;
-        cx.fillStyle=`rgba(255,${Math.random()*80|0},${Math.random()*80|0},0.1)`;
-        cx.fillRect(xoff,y,W,h);
-        cx.fillStyle=`rgba(0,255,200,0.05)`;
-        cx.fillRect(-xoff*.5,y+h,W,h*.5);
+      t+=0.016; glitchTimer-=0.016;
+      if(glitchTimer<=0){
+        glitchTimer=2+Math.random()*3;
+        const nb=3+Math.floor(Math.random()*5);
+        for(let s=0;s<nb;s++){
+          const sy=Math.random()*H;
+          const sh=2+Math.random()*20;
+          const sx=(Math.random()-0.5)*30;
+          cx.globalAlpha=0.15+Math.random()*0.15;
+          cx.fillStyle=`rgb(${200+Math.random()*55|0},${Math.random()*80|0},${Math.random()*80|0})`;
+          cx.fillRect(sx,sy,W,sh);
+          cx.fillStyle='rgba(0,255,200,0.08)';
+          cx.fillRect(-sx*.5,sy+sh,W,sh*.4);
+        }
+        if(Math.random()<0.15){
+          cx.globalAlpha=0.04;
+          cx.fillStyle='white';
+          cx.fillRect(0,0,W,H);
+        }
+        cx.globalAlpha=1;
       }
       raf=requestAnimationFrame(loop);
     })();

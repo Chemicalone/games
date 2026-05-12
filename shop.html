@@ -415,10 +415,11 @@ let raf=null, parts=[];
 function initCanvas(decoId){
   const cv=document.getElementById('sparkle-canvas');
   const cx=cv.getContext('2d');
-  cancelAnimationFrame(raf); parts=[];
+  cancelAnimationFrame(raf);
+  parts=[];
   if(window._cleanRgb){ window._cleanRgb(); window._cleanRgb=null; }
   cv.width=innerWidth; cv.height=innerHeight;
-  const W=cv.width,H=cv.height;
+  const W=cv.width, H=cv.height;
   const acc=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#aaa';
 
   if(decoId==='deco-sparkle'){
@@ -429,9 +430,9 @@ function initCanvas(decoId){
         p.life-=p.spd;
         if(p.life<=0) parts[i]=mkSparkle(W,H,acc);
         const a=Math.max(0,Math.sin(p.life/p.max*Math.PI))*.75;
-        cx.save();cx.globalAlpha=a;cx.fillStyle=p.col;
-        cx.font=p.sz+'px monospace';cx.fillText(p.ch,p.x,p.y);
-        cx.restore();p.y+=p.vy;
+        cx.save(); cx.globalAlpha=a; cx.fillStyle=p.col;
+        cx.font=p.sz+'px monospace'; cx.fillText(p.ch,p.x,p.y);
+        cx.restore(); p.y+=p.vy;
       });
       raf=requestAnimationFrame(loop);
     })();
@@ -439,7 +440,7 @@ function initCanvas(decoId){
   else if(decoId==='deco-aurora'){
     let t=0;
     (function loop(){
-      cx.clearRect(0,0,W,H);t+=0.004;
+      cx.clearRect(0,0,W,H); t+=0.004;
       for(let i=0;i<4;i++){
         const hue=(i*90+t*25)%360;
         const g=cx.createLinearGradient(0,0,W,0);
@@ -458,85 +459,98 @@ function initCanvas(decoId){
     const drops=Array.from({length:cols},()=>Math.random()*H);
     const chars='ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂ0123456789ABCDEF░▒▓'.split('');
     (function loop(){
-      cx.fillStyle='rgba(0,0,0,0.045)';cx.fillRect(0,0,W,H);
+      cx.fillStyle='rgba(0,0,0,0.045)'; cx.fillRect(0,0,W,H);
       cx.font='13px monospace';
       drops.forEach((y,i)=>{
         const ch=chars[Math.floor(Math.random()*chars.length)];
-        cx.globalAlpha=.6;cx.fillStyle=acc;cx.fillText(ch,i*14,y);
-        cx.globalAlpha=.12;cx.fillText(ch,i*14,y-20);cx.globalAlpha=1;
+        cx.globalAlpha=.6; cx.fillStyle=acc; cx.fillText(ch,i*14,y);
+        cx.globalAlpha=.12; cx.fillText(ch,i*14,y-20); cx.globalAlpha=1;
         if(y>H&&Math.random()>.975) drops[i]=0;
         drops[i]+=14;
       });
       raf=requestAnimationFrame(loop);
     })();
   }
-  else if(decoId==='deco-rgb'){
-    // vera aberrazione cromatica: cattura il contenuto e lo ridisegna sfasato con mix-blend-mode
-    let t=0;
-    const overlay=document.createElement('canvas');
-    overlay.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2;mix-blend-mode:screen;';
-    overlay.width=W;overlay.height=H;
-    document.body.appendChild(overlay);
-    const ox=overlay.getContext('2d');
-    // usa il canvas esistente (sparkle-canvas) per l'effetto RGB diretto
-    (function loop(){
-      cx.clearRect(0,0,W,H);
-      t+=0.016;
-      const glitchActive = Math.sin(t*0.7)>0.6;
-      if(glitchActive){
-        const shift=2+Math.random()*3;
-        // canale rosso
-        cx.globalCompositeOperation='source-over';
-        cx.fillStyle=`rgba(255,0,0,0.08)`;
-        cx.fillRect(-shift,0,W,H);
-        // canale ciano
-        cx.fillStyle=`rgba(0,255,255,0.08)`;
-        cx.fillRect(shift,0,W,H);
-        // linee orizzontali di disturbo
-        const lines=Math.floor(Math.random()*4);
-        for(let l=0;l<lines;l++){
-          const ly=Math.random()*H;
-          const lh=1+Math.random()*3;
-          cx.fillStyle=`rgba(255,255,255,${0.03+Math.random()*0.05})`;
-          cx.fillRect(0,ly,W,lh);
-        }
-      }
-      raf=requestAnimationFrame(loop);
-    })();
-    // pulisci overlay extra se si cambia effetto
-    const origInit=window._cleanRgb;
-    window._cleanRgb=()=>{ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); };
-  }
-  else if(decoId==='deco-glitch'){
-    let t=0;
-    (function loop(){
-      cx.clearRect(0,0,W,H);
-      t+=0.016;
-      if(Math.random()<0.04){
-        // striscia di disturbo casuale
-        const y=Math.random()*H;
-        const h=2+Math.random()*12;
-        const xoff=(Math.random()-0.5)*20;
-        cx.fillStyle=`rgba(255,${Math.random()*100|0},${Math.random()*100|0},0.12)`;
-        cx.fillRect(xoff,y,W,h);
-        // blocco RGB
-        cx.fillStyle=`rgba(0,255,200,0.06)`;
-        cx.fillRect(-xoff*0.5,y+h,W,h*0.5);
-      }
-      raf=requestAnimationFrame(loop);
-    })();
-  }
+  else if(decoId==='deco-ember'){
     for(let i=0;i<50;i++) parts.push(mkEmber(W,H,acc));
     (function loop(){
       cx.clearRect(0,0,W,H);
       const now=Date.now()*.001;
       parts.forEach((p,i)=>{
-        p.y-=p.vy;p.x+=Math.sin(p.ph+now)*.6;p.life--;
+        p.y-=p.vy; p.x+=Math.sin(p.ph+now)*.6; p.life--;
         if(p.life<=0) parts[i]=mkEmber(W,H,acc);
         const a=p.life/p.max*.65;
-        cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
-        cx.fillStyle=p.col;cx.globalAlpha=a;cx.fill();cx.globalAlpha=1;
+        cx.beginPath(); cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        cx.fillStyle=p.col; cx.globalAlpha=a; cx.fill(); cx.globalAlpha=1;
       });
+      raf=requestAnimationFrame(loop);
+    })();
+  }
+  else if(decoId==='deco-rgb'){
+    /* aberrazione cromatica reale: sfasa rettangoli rosso/ciano
+       con globalCompositeOperation per dare effetto split-channel */
+    let t=0;
+    (function loop(){
+      cx.clearRect(0,0,W,H);
+      t+=0.016;
+      // attivo a impulsi irregolari
+      if(Math.sin(t*0.9)>0.45 || Math.sin(t*2.3)>0.8){
+        const shift=3+Math.random()*5;
+        // striscia rossa a sinistra
+        cx.globalAlpha=0.18;
+        cx.fillStyle='rgb(255,0,0)';
+        cx.fillRect(0,0,shift,H);
+        // striscia ciano a destra
+        cx.fillStyle='rgb(0,255,255)';
+        cx.fillRect(W-shift,0,shift,H);
+        // bande orizzontali spostate
+        const nb=1+Math.floor(Math.random()*4);
+        for(let l=0;l<nb;l++){
+          const ly=Math.random()*H;
+          const lh=1+Math.random()*4;
+          const lx=(Math.random()-0.5)*shift*2;
+          cx.globalAlpha=0.12+Math.random()*0.1;
+          cx.fillStyle=Math.random()>0.5?'rgb(255,0,100)':'rgb(0,255,200)';
+          cx.fillRect(lx,ly,W,lh);
+        }
+        cx.globalAlpha=1;
+      }
+      raf=requestAnimationFrame(loop);
+    })();
+  }
+  else if(decoId==='deco-glitch'){
+    /* glitch: strisce di schermo che si spostano orizzontalmente
+       + flash di colore + righe bianche di disturbo */
+    let t=0;
+    let glitchTimer=0;
+    (function loop(){
+      cx.clearRect(0,0,W,H);
+      t+=0.016;
+      glitchTimer-=0.016;
+      // burst di glitch ogni 2-5 secondi
+      if(glitchTimer<=0){
+        glitchTimer=2+Math.random()*3;
+        const nbSlices=3+Math.floor(Math.random()*5);
+        for(let s=0;s<nbSlices;s++){
+          const sy=Math.random()*H;
+          const sh=2+Math.random()*20;
+          const sx=(Math.random()-0.5)*30;
+          // fascia spostata
+          cx.globalAlpha=0.15+Math.random()*0.15;
+          cx.fillStyle=`rgb(${200+Math.random()*55|0},${Math.random()*80|0},${Math.random()*80|0})`;
+          cx.fillRect(sx,sy,W,sh);
+          // fascia complementare
+          cx.fillStyle=`rgba(0,255,200,0.08)`;
+          cx.fillRect(-sx*.5,sy+sh,W,sh*.4);
+        }
+        // flash bianco totale rarissimo
+        if(Math.random()<0.15){
+          cx.globalAlpha=0.04;
+          cx.fillStyle='white';
+          cx.fillRect(0,0,W,H);
+        }
+        cx.globalAlpha=1;
+      }
       raf=requestAnimationFrame(loop);
     })();
   }
