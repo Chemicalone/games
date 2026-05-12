@@ -173,6 +173,40 @@
     transition:opacity .3s;letter-spacing:1px;
   }
   #music-toggle:hover{opacity:.8 !important;}
+
+  /* ── DEBUG OVERLAY ── */
+  #debug-overlay{
+    display:none;position:fixed;inset:0;z-index:9999;
+    background:rgba(0,0,0,0.92);
+    align-items:center;justify-content:center;flex-direction:column;gap:0;
+  }
+  #debug-overlay.open{display:flex;}
+  #debug-box{
+    border:1px solid #333;padding:28px 32px;min-width:260px;
+    background:#000;font-family:var(--font);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  #debug-title{
+    font-size:11px;letter-spacing:5px;opacity:.25;
+    text-transform:uppercase;margin-bottom:4px;
+    border-bottom:1px solid #181818;padding-bottom:10px;
+  }
+  .dbg-btn{
+    background:none;border:1px solid #2a2a2a;
+    font-family:var(--font);font-size:13px;color:#666;
+    padding:8px 14px;cursor:pointer;letter-spacing:1px;
+    text-align:left;transition:border-color .15s,color .15s;
+  }
+  .dbg-btn:hover{border-color:#f00;color:#f00;}
+  .dbg-btn.safe:hover{border-color:#555;color:#aaa;}
+  #debug-close{
+    background:none;border:none;font-family:var(--font);
+    font-size:11px;color:#333;cursor:pointer;
+    letter-spacing:2px;margin-top:6px;padding:4px 0;
+    text-align:left;transition:color .15s;
+  }
+  #debug-close:hover{color:#666;}
+  #debug-status{font-size:10px;opacity:.3;min-height:14px;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -510,6 +544,72 @@ applyCosmetics();
   });
 })();
 
+/* ══════════════════════════════════════════════
+   DEBUG MENU  — codice: d e b u g (in sequenza)
+══════════════════════════════════════════════ */
+(function(){
+  const CODE = ['d','e','b','u','g'];
+  let buf = [];
+
+  document.addEventListener('keydown', e=>{
+    buf.push(e.key.toLowerCase());
+    if(buf.length > CODE.length) buf.shift();
+    if(buf.join('') === CODE.join('')){
+      buf = [];
+      openDebug();
+    }
+  });
+
+  // touch: 5 tap rapidi nell'angolo in basso a sinistra
+  let tapCount = 0, tapTimer = null;
+  document.addEventListener('click', e=>{
+    if(e.clientX < 60 && e.clientY > window.innerHeight - 60){
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(()=>{ tapCount=0; }, 800);
+      if(tapCount >= 5){ tapCount=0; openDebug(); }
+    }
+  });
+})();
+
+function openDebug(){
+  document.getElementById('debug-overlay').classList.add('open');
+  document.getElementById('debug-status').textContent='';
+}
+function closeDebug(){
+  document.getElementById('debug-overlay').classList.remove('open');
+}
+document.getElementById('debug-overlay').addEventListener('click', e=>{
+  if(e.target === document.getElementById('debug-overlay')) closeDebug();
+});
+
+function dbgStatus(msg){ document.getElementById('debug-status').textContent = msg; }
+
+function dbgResetShop(){
+  localStorage.removeItem('shop-purchased');
+  localStorage.removeItem('shop-equipped');
+  localStorage.removeItem('hub-music');
+  dbgStatus('shop resettato ✓');
+  setTimeout(()=>location.reload(), 800);
+}
+function dbgResetPoints(){
+  localStorage.setItem('campo-points','0');
+  const el = document.getElementById('points-count');
+  if(el) el.textContent = '0';
+  dbgStatus('punti azzerati ✓');
+}
+
+
 </script>
+
+<div id="debug-overlay">
+  <div id="debug-box">
+    <div id="debug-title">[ debug ]</div>
+    <button class="dbg-btn" onclick="dbgResetShop()">↺ reset shop</button>
+    <button class="dbg-btn" onclick="dbgResetPoints()">↺ reset punti</button>
+    <div id="debug-status"></div>
+    <button id="debug-close" onclick="closeDebug()">× chiudi</button>
+  </div>
+</div>
 </body>
 </html>
