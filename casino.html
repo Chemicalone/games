@@ -1679,10 +1679,13 @@ function startBlackjack() {
 function renderBJ(showDealer = false) {
   const dc = document.getElementById('dealer-cards');
   const pc = document.getElementById('player-cards');
-  dc.innerHTML = renderCard(bjDealer[0]) + (showDealer ? bjDealer.slice(1).concat([bjDealerHidden]).map(c => renderCard(c)).join('') : renderCard(0, true));
+  // Quando showDealer=true, bjDealerHidden è già dentro bjDealer (pushato in bjStand),
+  // quindi usiamo bjDealer.slice(1) senza riconcatenarlo.
+  // Quando showDealer=false, mostriamo solo bjDealer[0] + carta coperta.
+  dc.innerHTML = renderCard(bjDealer[0]) + (showDealer ? bjDealer.slice(1).map(c => renderCard(c)).join('') : renderCard(0, true));
   pc.innerHTML = bjPlayer.map(c => renderCard(c)).join('');
   document.getElementById('player-score').textContent = bjPlayerScore;
-  document.getElementById('dealer-score').textContent = showDealer ? scoreHand(bjDealer.concat([bjDealerHidden])) : '?';
+  document.getElementById('dealer-score').textContent = showDealer ? scoreHand(bjDealer) : '?';
 }
 function bjLog(msg, type = 'info') {
   const log = document.getElementById('bj-log');
@@ -1721,7 +1724,10 @@ function bjStand() {
       if (dealerScore > 21) {
         bjLog('Dealer scoppiato!', 'win');
         endBJ(true, 'dealer scoppiato');
-      } else if (dealerScore >= bjPlayerScore) {
+      } else if (dealerScore === bjPlayerScore) {
+        bjLog(`Pareggio! (${dealerScore} vs ${bjPlayerScore})`, 'info');
+        endBJ(null, 'pareggio');
+      } else if (dealerScore > bjPlayerScore) {
         bjLog(`Dealer vince (${dealerScore} vs ${bjPlayerScore})`, 'lose');
         endBJ(false, 'dealer vince');
       } else {
@@ -1732,12 +1738,14 @@ function bjStand() {
   }, 700);
 }
 function endBJ(won, reason) {
-  if (won) {
-    // fish già scalato di bjMano all'inizio; restituiamo bjMano*2 (puntata + vincita)
+  if (won === true) {
     updateFish(fish + bjMano * 2, true);
     showResult('bj', true, '', `<b>${reason.toUpperCase()}</b><br>Il tuo punteggio: <span class="result-highlight">${bjPlayerScore}</span><br>Guadagno: <span class="result-highlight">+${bjMano} fish</span>. Saldo: <span class="result-highlight">${fish} fish</span>`);
+  } else if (won === null) {
+    // Pareggio: restituiamo la puntata
+    updateFish(fish + bjMano, null);
+    showResult('bj', null, 'PAREGGIO', `<b>PAREGGIO</b><br>Punteggio pari: <span class="result-highlight">${bjPlayerScore}</span><br>La puntata ti viene restituita. Saldo: <span class="result-highlight">${fish} fish</span>`);
   } else {
-    // fish già scalato di bjMano, basta aggiornare il display e controllare game over
     updateFish(fish, false);
     showResult('bj', false, '', `<b>${reason.toUpperCase()}</b><br>Perdi <span class="result-highlight">${bjMano} fish</span>. Saldo: <span class="result-highlight">${fish} fish</span>`);
   }
