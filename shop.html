@@ -92,8 +92,9 @@
     content:'✓';position:absolute;top:6px;right:8px;
     font-size:10px;opacity:.7;color:var(--accent);
   }
-  .item-card.cant-afford{opacity:.35;cursor:not-allowed;}
-  .item-card.cant-afford:hover{transform:none;border-color:var(--card-border);color:var(--fg);}
+  .item-card.cant-afford{opacity:.55;cursor:not-allowed;filter:none;}
+  .item-card.cant-afford .item-cost{color:#844;opacity:1;}
+  .item-card.cant-afford:hover{transform:none;border-color:var(--card-border);color:var(--fg);opacity:.55;}
 
   .item-preview{height:22px;display:flex;align-items:center;gap:6px;margin-bottom:2px;}
   .item-name{font-size:12px;letter-spacing:.5px;line-height:1.3;}
