@@ -154,6 +154,12 @@ const ITEMS = [
   { id:'bg-rust',   cat:'bg', name:'rust',       cost:50,  preview:'bg:#110800',   tag:'ruggine' },
   { id:'bg-slate',  cat:'bg', name:'slate',      cost:50,  preview:'bg:#060a0f',   tag:'ardesia' },
   { id:'bg-void',   cat:'bg', name:'void',       cost:60,  preview:'bg:#050505',   tag:'vuoto' },
+  { id:'bg-pink',   cat:'bg', name:'pink',       cost:40,  preview:'bg:#120008',   tag:'rosa' },
+  { id:'bg-teal',   cat:'bg', name:'teal',       cost:40,  preview:'bg:#001210',   tag:'acqua' },
+  { id:'bg-gold',   cat:'bg', name:'gold',       cost:50,  preview:'bg:#120f00',   tag:'oro' },
+  { id:'bg-night',  cat:'bg', name:'midnight',   cost:50,  preview:'bg:#010108',   tag:'notte' },
+  { id:'bg-forest', cat:'bg', name:'forest',     cost:50,  preview:'bg:#001800',   tag:'bosco' },
+  { id:'bg-abyss',  cat:'bg', name:'abyss',      cost:70,  preview:'bg:#000305',   tag:'abisso' },
 
   /* ── FONT ── */
   { id:'font-mono',    cat:'font', name:'mono',    cost:0,  preview:'font:monospace',        tag:'default' },
@@ -172,6 +178,11 @@ const ITEMS = [
   { id:'card-neon',   cat:'card', name:'neon',    cost:80,  preview:'card:solid 1px #0f0',   tag:'neon' },
   { id:'card-inset',  cat:'card', name:'inset',   cost:50,  preview:'card:inset shadow',      tag:'incassato' },
   { id:'card-ghost',  cat:'card', name:'ghost',   cost:40,  preview:'card:trasparente',       tag:'fantasma' },
+  { id:'card-dotted', cat:'card', name:'dotted',  cost:35,  preview:'card:dotted 1px #444',   tag:'puntini' },
+  { id:'card-round',  cat:'card', name:'rounded', cost:45,  preview:'card:solid 1px #333 ⊙',  tag:'morbido' },
+  { id:'card-groove', cat:'card', name:'groove',  cost:50,  preview:'card:groove 3px #555',   tag:'rilievo' },
+  { id:'card-ridge',  cat:'card', name:'ridge',   cost:50,  preview:'card:ridge 3px #555',    tag:'cresta' },
+  { id:'card-bright', cat:'card', name:'bright',  cost:70,  preview:'card:solid 1px #fff ✦',  tag:'bianco' },
 
   /* ── ACCENTO ── */
   { id:'acc-aaa', cat:'accent', name:'bianco',   cost:0,   preview:'acc:#aaa' },
@@ -186,6 +197,12 @@ const ITEMS = [
   { id:'acc-fa0', cat:'accent', name:'dorato',   cost:50,  preview:'acc:#fa0' },
   { id:'acc-aff', cat:'accent', name:'menta',    cost:50,  preview:'acc:#aff' },
   { id:'acc-f8a', cat:'accent', name:'rosa',     cost:50,  preview:'acc:#f8a' },
+  { id:'acc-lime',  cat:'accent', name:'lime',     cost:40,  preview:'acc:#afa' },
+  { id:'acc-coral', cat:'accent', name:'corallo',  cost:40,  preview:'acc:#f86' },
+  { id:'acc-sky',   cat:'accent', name:'cielo',    cost:40,  preview:'acc:#7df' },
+  { id:'acc-gold2', cat:'accent', name:'oro',      cost:60,  preview:'acc:#ffd' },
+  { id:'acc-iceblue',cat:'accent',name:'ghiaccio', cost:60,  preview:'acc:#acf' },
+  { id:'acc-lemon', cat:'accent', name:'limone',   cost:50,  preview:'acc:#ef0' },
 
   /* ── CURSORE ── */
   { id:'cur-default', cat:'cursor', name:'default',    cost:0,  preview:'cursor:default',    tag:'➜' },
@@ -193,6 +210,10 @@ const ITEMS = [
   { id:'cur-text',    cat:'cursor', name:'testo',      cost:10, preview:'cursor:text',       tag:'I' },
   { id:'cur-none',    cat:'cursor', name:'invisibile', cost:60, preview:'cursor:none',       tag:'?' },
   { id:'cur-wait',    cat:'cursor', name:'attesa',     cost:30, preview:'cursor:wait',       tag:'⏳' },
+  { id:'cur-pointer', cat:'cursor', name:'puntatore',  cost:20, preview:'cursor:pointer',    tag:'☞' },
+  { id:'cur-grab',    cat:'cursor', name:'grab',       cost:40, preview:'cursor:grab',       tag:'✊' },
+  { id:'cur-ew',      cat:'cursor', name:'h-resize',   cost:30, preview:'cursor:ew-resize',  tag:'↔' },
+  { id:'cur-zoom',    cat:'cursor', name:'zoom',       cost:35, preview:'cursor:zoom-in',    tag:'⊕' },
 
   /* ── EFFETTO SFONDO ── */
   { id:'deco-none',     cat:'deco', name:'nessuno',     cost:0,   preview:'deco:—',       tag:'pulito' },
@@ -243,6 +264,8 @@ const CSS_MAP = {
     'bg-deep':'--bg:#00001a','bg-ash':'--bg:#0e0e0e','bg-amber':'--bg:#100800',
     'bg-ice':'--bg:#00080f','bg-purple':'--bg:#0a0010','bg-olive':'--bg:#0a0f00',
     'bg-rust':'--bg:#110800','bg-slate':'--bg:#060a0f','bg-void':'--bg:#050505',
+    'bg-pink':'--bg:#120008','bg-teal':'--bg:#001210','bg-gold':'--bg:#120f00',
+    'bg-night':'--bg:#010108','bg-forest':'--bg:#001800','bg-abyss':'--bg:#000305',
   },
   font:{
     'font-mono':'--font:monospace','font-courier':"--font:'Courier New',monospace",
@@ -259,6 +282,11 @@ const CSS_MAP = {
     'card-neon':'--card-bg:#000;--card-border:#0f0;--card-radius:0px;--card-shadow:0 0 8px rgba(0,255,0,0.25);--card-border-style:solid;--card-border-w:1px',
     'card-inset':'--card-bg:#050505;--card-border:#111;--card-radius:0px;--card-shadow:inset 0 2px 8px rgba(0,0,0,0.8);--card-border-style:solid;--card-border-w:1px',
     'card-ghost':'--card-bg:transparent;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-dotted':'--card-bg:#080808;--card-border:#444;--card-radius:0px;--card-shadow:none;--card-border-style:dotted;--card-border-w:1px',
+    'card-round':'--card-bg:#0a0a0a;--card-border:#333;--card-radius:8px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-groove':'--card-bg:#060606;--card-border:#555;--card-radius:0px;--card-shadow:none;--card-border-style:groove;--card-border-w:3px',
+    'card-ridge':'--card-bg:#060606;--card-border:#555;--card-radius:0px;--card-shadow:none;--card-border-style:ridge;--card-border-w:3px',
+    'card-bright':'--card-bg:#0a0a0a;--card-border:#fff;--card-radius:0px;--card-shadow:0 0 12px rgba(255,255,255,0.08);--card-border-style:solid;--card-border-w:1px',
   },
   accent:{
     'acc-aaa':'--accent:#aaa;--fg:#aaa','acc-0f0':'--accent:#0f0;--fg:#0d0',
@@ -267,10 +295,15 @@ const CSS_MAP = {
     'acc-f00':'--accent:#f00;--fg:#c00','acc-88f':'--accent:#88f;--fg:#66d',
     'acc-0af':'--accent:#0af;--fg:#08d','acc-fa0':'--accent:#fa0;--fg:#d80',
     'acc-aff':'--accent:#aff;--fg:#8ee','acc-f8a':'--accent:#f8a;--fg:#d68',
+    'acc-lime':'--accent:#afa;--fg:#8d8','acc-coral':'--accent:#f86;--fg:#d64',
+    'acc-sky':'--accent:#7df;--fg:#5bc','acc-gold2':'--accent:#ffd;--fg:#ccb',
+    'acc-iceblue':'--accent:#acf;--fg:#8ad','acc-lemon':'--accent:#ef0;--fg:#cc0',
   },
   cursor:{
     'cur-default':'--cursor:default','cur-cross':'--cursor:crosshair',
     'cur-text':'--cursor:text','cur-none':'--cursor:none','cur-wait':'--cursor:wait',
+    'cur-pointer':'--cursor:pointer','cur-grab':'--cursor:grab',
+    'cur-ew':'--cursor:ew-resize','cur-zoom':'--cursor:zoom-in',
   },
   deco:{
     'deco-none':'none','deco-corner':'corner','deco-scan':'scan','deco-vignette':'vignette',

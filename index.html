@@ -83,8 +83,8 @@
   /* wave */
   body.deco-wave #hub-wrap{animation:wave-float 5s ease-in-out infinite;}
   @keyframes wave-float{
-    0%,100%{padding-top:28px;}
-    50%{padding-top:18px;}
+    0%,100%{margin-top:0px;}
+    50%{margin-top:-10px;}
   }
 
   /* corner */
@@ -273,6 +273,8 @@ const CSS_MAP = {
     'bg-deep':'--bg:#00001a','bg-ash':'--bg:#0e0e0e','bg-amber':'--bg:#100800',
     'bg-ice':'--bg:#00080f','bg-purple':'--bg:#0a0010','bg-olive':'--bg:#0a0f00',
     'bg-rust':'--bg:#110800','bg-slate':'--bg:#060a0f','bg-void':'--bg:#050505',
+    'bg-pink':'--bg:#120008','bg-teal':'--bg:#001210','bg-gold':'--bg:#120f00',
+    'bg-night':'--bg:#010108','bg-forest':'--bg:#001800','bg-abyss':'--bg:#000305',
   },
   font:{
     'font-mono':'--font:monospace','font-courier':"--font:'Courier New',monospace",
@@ -289,6 +291,11 @@ const CSS_MAP = {
     'card-neon':'--card-bg:#000;--card-border:#0f0;--card-radius:0px;--card-shadow:0 0 8px rgba(0,255,0,0.25);--card-border-style:solid;--card-border-w:1px',
     'card-inset':'--card-bg:#050505;--card-border:#111;--card-radius:0px;--card-shadow:inset 0 2px 8px rgba(0,0,0,0.8);--card-border-style:solid;--card-border-w:1px',
     'card-ghost':'--card-bg:transparent;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-dotted':'--card-bg:#080808;--card-border:#444;--card-radius:0px;--card-shadow:none;--card-border-style:dotted;--card-border-w:1px',
+    'card-round':'--card-bg:#0a0a0a;--card-border:#333;--card-radius:8px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-groove':'--card-bg:#060606;--card-border:#555;--card-radius:0px;--card-shadow:none;--card-border-style:groove;--card-border-w:3px',
+    'card-ridge':'--card-bg:#060606;--card-border:#555;--card-radius:0px;--card-shadow:none;--card-border-style:ridge;--card-border-w:3px',
+    'card-bright':'--card-bg:#0a0a0a;--card-border:#fff;--card-radius:0px;--card-shadow:0 0 12px rgba(255,255,255,0.08);--card-border-style:solid;--card-border-w:1px',
   },
   accent:{
     'acc-aaa':'--accent:#aaa;--fg:#aaa','acc-0f0':'--accent:#0f0;--fg:#0d0',
@@ -297,10 +304,15 @@ const CSS_MAP = {
     'acc-f00':'--accent:#f00;--fg:#c00','acc-88f':'--accent:#88f;--fg:#66d',
     'acc-0af':'--accent:#0af;--fg:#08d','acc-fa0':'--accent:#fa0;--fg:#d80',
     'acc-aff':'--accent:#aff;--fg:#8ee','acc-f8a':'--accent:#f8a;--fg:#d68',
+    'acc-lime':'--accent:#afa;--fg:#8d8','acc-coral':'--accent:#f86;--fg:#d64',
+    'acc-sky':'--accent:#7df;--fg:#5bc','acc-gold2':'--accent:#ffd;--fg:#ccb',
+    'acc-iceblue':'--accent:#acf;--fg:#8ad','acc-lemon':'--accent:#ef0;--fg:#cc0',
   },
   cursor:{
     'cur-default':'--cursor:default','cur-cross':'--cursor:crosshair',
     'cur-text':'--cursor:text','cur-none':'--cursor:none','cur-wait':'--cursor:wait',
+    'cur-pointer':'--cursor:pointer','cur-grab':'--cursor:grab',
+    'cur-ew':'--cursor:ew-resize','cur-zoom':'--cursor:zoom-in',
   },
   deco:{
     'deco-none':'none','deco-corner':'corner','deco-scan':'scan','deco-vignette':'vignette',
