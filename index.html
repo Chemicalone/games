@@ -8,184 +8,174 @@
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #000;
-    --fg: #aaa;
-    --accent: #aaa;
-    --card-bg: #0a0a0a;
-    --card-border: #222;
-    --card-radius: 0px;
-    --card-shadow: none;
-    --card-border-style: solid;
-    --card-border-w: 1px;
-    --font: monospace;
-    --cursor: default;
+    --bg:#000; --fg:#aaa; --accent:#aaa;
+    --card-bg:#0a0a0a; --card-border:#222; --card-radius:0px;
+    --card-shadow:none; --card-border-style:solid; --card-border-w:1px;
+    --font:monospace; --cursor:default;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--fg); font-family:var(--font);
+    font-size:16px; cursor:var(--cursor); -webkit-tap-highlight-color:transparent;
+    min-height:100vh; transition:background 0.5s,color 0.4s;
+    position:relative; overflow-x:hidden;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ── DECO BASE ── */
+  #deco-layer{position:fixed;inset:0;pointer-events:none;z-index:0;}
+  body.deco-scan #deco-layer{background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.018) 3px,rgba(255,255,255,0.018) 4px);}
+  body.deco-vignette #deco-layer{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,0.78) 100%);}
+  body.deco-grid #deco-layer{background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:24px 24px;}
+  body.deco-cross #deco-layer{background-image:radial-gradient(rgba(255,255,255,0.07) 1px,transparent 1px);background-size:14px 14px;}
+  body.deco-crt{box-shadow:inset 0 0 80px rgba(0,0,0,0.9);}
+  body.deco-crt #deco-layer{background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 3px);}
+  body.deco-lines{background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.012) 2px,rgba(255,255,255,0.012) 3px);}
 
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--font);
-    font-size: 16px;
-    padding: 24px 20px;
-    cursor: var(--cursor);
-    -webkit-tap-highlight-color: transparent;
-    min-height: 100vh;
-    transition: background 0.4s, color 0.4s;
-    position: relative;
+  /* noise */
+  body.deco-noise #deco-layer{
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:256px 256px; opacity:0.06;
   }
 
-  /* ── DECO LAYERS ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    pointer-events: none;
-    z-index: 0;
+  /* glitch */
+  body.deco-glitch #deco-layer{animation:glitch-bg 7s infinite;}
+  @keyframes glitch-bg{
+    0%,94%,100%{opacity:0;transform:none;}
+    95%{opacity:1;background:rgba(255,0,80,0.04);transform:translate(-3px,0);}
+    96%{opacity:1;background:rgba(0,255,200,0.04);transform:translate(3px,0);}
+    97%{opacity:1;background:rgba(255,255,0,0.02);transform:translate(0,2px);}
+    98%{opacity:0;transform:none;}
   }
-  body.deco-scan::before {
-    background: repeating-linear-gradient(
-      0deg, transparent, transparent 3px,
-      rgba(255,255,255,0.015) 3px, rgba(255,255,255,0.015) 4px
-    );
+  body.deco-glitch .game-card:hover .card-name{animation:glitch-txt 0.4s steps(1) forwards;}
+  @keyframes glitch-txt{
+    0%{text-shadow:none;}
+    20%{text-shadow:-2px 0 rgba(255,0,80,.8),2px 0 rgba(0,255,200,.8);transform:translate(2px,0);}
+    40%{text-shadow:2px 0 rgba(255,0,80,.8),-2px 0 rgba(0,255,200,.8);transform:translate(-2px,0);}
+    60%{text-shadow:none;transform:none;}
+    80%{text-shadow:-1px 0 rgba(255,0,80,.5);transform:translate(1px,0);}
+    100%{text-shadow:none;transform:none;}
   }
-  body.deco-vignette::before {
-    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%);
+
+  /* rgb shift */
+  body.deco-rgb #hub-wrap{animation:rgb-shift 10s infinite;}
+  @keyframes rgb-shift{
+    0%,88%,100%{filter:none;}
+    90%{filter:drop-shadow(-2px 0 0 rgba(255,0,0,.45)) drop-shadow(2px 0 0 rgba(0,255,255,.45));}
+    92%{filter:none;}
+    94%{filter:drop-shadow(1px 0 0 rgba(255,0,255,.35)) drop-shadow(-1px 0 0 rgba(0,255,0,.35));}
+    96%{filter:none;}
   }
-  body.deco-grid::before {
-    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 20px 20px;
+
+  /* pulse */
+  body.deco-pulse #hub-wrap{animation:pulse-glow 3s ease-in-out infinite;}
+  @keyframes pulse-glow{
+    0%,100%{filter:drop-shadow(0 0 0px var(--accent));}
+    50%{filter:drop-shadow(0 0 18px var(--accent));}
   }
-  body.deco-cross::before {
-    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
-    background-size: 14px 14px;
+
+  /* static */
+  body.deco-static::after{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:998;
+    animation:static-fl 0.08s steps(1) infinite;
   }
-  body.deco-crt {
-    box-shadow: inset 0 0 60px rgba(0,0,0,0.8);
+  @keyframes static-fl{
+    0%{opacity:0;}
+    8%{opacity:1;background:rgba(255,255,255,0.025);transform:translate(-1px,0);}
+    16%{opacity:0;}
+    55%{opacity:0;}
+    60%{opacity:1;background:rgba(255,255,255,0.02);transform:translate(1px,1px);}
+    68%{opacity:0;}
+    100%{opacity:0;}
   }
-  body.deco-lines {
-    background-image: repeating-linear-gradient(
-      0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px
-    );
+
+  /* wave */
+  body.deco-wave #hub-wrap{animation:wave-float 5s ease-in-out infinite;}
+  @keyframes wave-float{
+    0%,100%{transform:translateY(0px);}
+    50%{transform:translateY(-6px);}
   }
-  body.deco-corner #hub-wrap::before, body.deco-corner #hub-wrap::after {
-    content: ''; position: absolute;
-    width: 14px; height: 14px;
-    border-color: var(--accent); border-style: solid; border-width: 0;
-    opacity: 0.35;
+
+  /* corner */
+  body.deco-corner #hub-wrap{position:relative;}
+  body.deco-corner #hub-wrap::before,body.deco-corner #hub-wrap::after{
+    content:'';position:absolute;width:16px;height:16px;
+    border-color:var(--accent);border-style:solid;border-width:0;opacity:.4;
   }
-  body.deco-corner #hub-wrap { position: relative; }
-  body.deco-corner #hub-wrap::before { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
-  body.deco-corner #hub-wrap::after  { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+  body.deco-corner #hub-wrap::before{top:-4px;left:-4px;border-top-width:1px;border-left-width:1px;}
+  body.deco-corner #hub-wrap::after{bottom:-4px;right:-4px;border-bottom-width:1px;border-right-width:1px;}
+  body.deco-corner .game-card::before,body.deco-corner .game-card::after{
+    content:'';position:absolute;width:8px;height:8px;
+    border-color:var(--accent);border-style:solid;border-width:0;
+    opacity:0;transition:opacity .15s;
+  }
+  body.deco-corner .game-card::before{top:4px;left:4px;border-top-width:1px;border-left-width:1px;}
+  body.deco-corner .game-card::after{bottom:4px;right:4px;border-bottom-width:1px;border-right-width:1px;}
+  body.deco-corner .game-card:hover::before,body.deco-corner .game-card:hover::after{opacity:.5;}
+
+  /* canvas */
+  #sparkle-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .5s;}
+  body.deco-sparkle #sparkle-canvas,body.deco-aurora #sparkle-canvas,
+  body.deco-rain #sparkle-canvas,body.deco-ember #sparkle-canvas{opacity:1;}
 
   /* ── LAYOUT ── */
-  #hub-wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 480px;
+  #hub-wrap{
+    position:relative;z-index:1;padding:28px 24px 48px;
+    min-height:100vh;display:flex;flex-direction:column;
   }
+  #header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:36px;flex-shrink:0;}
+  #hub-title{font-size:20px;letter-spacing:6px;opacity:.4;}
+  #points-bar{font-size:13px;opacity:.8;}
+  #points-bar span{color:var(--accent);}
 
-  /* ── HEADER ── */
-  #header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 24px;
-  }
-  #hub-title {
-    font-size: 20px;
-    letter-spacing: 6px;
-    opacity: 0.5;
-  }
-  #points-bar {
-    font-size: 13px;
-    opacity: 0.8;
-  }
-  #points-bar span {
-    color: var(--accent);
-  }
+  /* ── CARDS ── */
+  #menu-cards{display:flex;flex-direction:column;gap:10px;width:100%;max-width:520px;}
 
-  /* ── GAME CARDS ── */
-  #menu-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+  body.layout-list   #menu-cards{align-self:flex-start;}
+  body.layout-center #menu-cards{align-self:center;align-items:center;}
+  body.layout-grid   #menu-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:560px;align-self:center;}
 
-  .game-card {
-    background: var(--card-bg);
-    border-style: var(--card-border-style);
-    border-width: var(--card-border-w);
-    border-color: var(--card-border);
-    border-radius: var(--card-radius);
-    box-shadow: var(--card-shadow);
-    padding: 14px 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    transition: border-color 0.15s, color 0.15s, transform 0.12s;
-    position: relative;
-    overflow: hidden;
-    /* reset button styles */
-    font-family: var(--font);
-    font-size: 15px;
-    color: var(--fg);
-    text-align: left;
-    width: 100%;
-    -webkit-appearance: none;
-    appearance: none;
+  .game-card{
+    background:var(--card-bg);
+    border-style:var(--card-border-style);border-width:var(--card-border-w);
+    border-color:var(--card-border);border-radius:var(--card-radius);
+    box-shadow:var(--card-shadow);
+    padding:14px 18px;cursor:pointer;
+    display:flex;align-items:flex-start;gap:14px;
+    transition:border-color .15s,color .15s,transform .12s,box-shadow .2s;
+    position:relative;overflow:hidden;
+    font-family:var(--font);font-size:15px;color:var(--fg);
+    text-align:left;width:100%;-webkit-appearance:none;appearance:none;
   }
-  .game-card:hover,
-  .game-card:focus {
-    border-color: var(--accent);
-    color: var(--accent);
-    outline: none;
-    transform: translateX(3px);
-  }
-  .game-card:active {
-    transform: translateX(6px);
-  }
+  body.layout-center .game-card{max-width:360px;}
+  body.layout-grid   .game-card{flex-direction:column;gap:8px;padding:18px 16px;}
 
-  .card-num {
-    opacity: 0.3;
-    font-size: 13px;
-    min-width: 2ch;
-  }
-  .card-name {
-    flex: 1;
-    letter-spacing: 1px;
-  }
-  .card-arrow {
-    opacity: 0.2;
-    font-size: 12px;
-    transition: opacity 0.15s;
-  }
-  .game-card:hover .card-arrow,
-  .game-card:focus .card-arrow {
-    opacity: 0.7;
-  }
+  .game-card:hover,.game-card:focus{border-color:var(--accent);color:var(--accent);outline:none;}
+  body.layout-list   .game-card:hover{transform:translateX(5px);}
+  body.layout-center .game-card:hover{transform:translateY(-3px);}
+  body.layout-grid   .game-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.55);}
+  .game-card:active{opacity:.7;}
 
-  /* deco-corner sulle card */
-  body.deco-corner .game-card::before,
-  body.deco-corner .game-card::after {
-    content: '';
-    position: absolute;
-    width: 8px; height: 8px;
-    border-color: var(--accent);
-    border-style: solid;
-    border-width: 0;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  body.deco-corner .game-card::before { top: 4px; left: 4px; border-top-width: 1px; border-left-width: 1px; }
-  body.deco-corner .game-card::after  { bottom: 4px; right: 4px; border-bottom-width: 1px; border-right-width: 1px; }
-  body.deco-corner .game-card:hover::before,
-  body.deco-corner .game-card:hover::after { opacity: 0.5; }
+  .card-left{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;}
+  body.layout-grid .card-left{flex-direction:row;align-items:center;}
+  .card-icon{font-size:22px;line-height:1;opacity:.65;transition:opacity .15s;}
+  .game-card:hover .card-icon{opacity:1;}
+  .card-num{opacity:.22;font-size:11px;letter-spacing:1px;}
+  .card-body{flex:1;display:flex;flex-direction:column;gap:4px;}
+  .card-name{font-size:15px;letter-spacing:1px;}
+  body.layout-grid .card-name{font-size:14px;}
+  .card-desc{font-size:11px;opacity:.35;line-height:1.55;transition:opacity .15s;}
+  body.desc-hide .card-desc{display:none;}
+  .game-card:hover .card-desc{opacity:.65;}
+  .card-arrow{opacity:.18;font-size:11px;align-self:center;flex-shrink:0;transition:opacity .15s,transform .15s;}
+  body.layout-grid .card-arrow{display:none;}
+  .game-card:hover .card-arrow{opacity:.6;transform:translateX(3px);}
+
+  #footer{margin-top:auto;padding-top:32px;font-size:11px;opacity:.18;letter-spacing:3px;z-index:1;position:relative;}
 </style>
 </head>
 <body>
+<div id="deco-layer"></div>
+<canvas id="sparkle-canvas"></canvas>
 
 <div id="hub-wrap">
   <div id="header">
@@ -195,133 +185,230 @@
 
   <div id="menu-cards">
     <button class="game-card" onclick="go('figget.html')">
-      <span class="card-num">1</span>
-      <span class="card-name">figet</span>
+      <div class="card-left"><span class="card-icon">🌀</span><span class="card-num">01</span></div>
+      <div class="card-body">
+        <div class="card-name">figet</div>
+        <div class="card-desc">spinner da far girare — più veloce giri, più punti guadagni</div>
+      </div>
       <span class="card-arrow">▶</span>
     </button>
     <button class="game-card" onclick="go('casino.html')">
-      <span class="card-num">2</span>
-      <span class="card-name">casino</span>
+      <div class="card-left"><span class="card-icon">🎰</span><span class="card-num">02</span></div>
+      <div class="card-body">
+        <div class="card-name">casino</div>
+        <div class="card-desc">slot machine, dadi, scommesse — rischia tutto o incassa piano</div>
+      </div>
       <span class="card-arrow">▶</span>
     </button>
     <button class="game-card" onclick="go('index_battaglie.html')">
-      <span class="card-num">3</span>
-      <span class="card-name">battaglie</span>
+      <div class="card-left"><span class="card-icon">⚔️</span><span class="card-num">03</span></div>
+      <div class="card-body">
+        <div class="card-name">battaglie</div>
+        <div class="card-desc">combattimenti a turni — storia o roguelike, sali di livello</div>
+      </div>
       <span class="card-arrow">▶</span>
     </button>
     <button class="game-card" onclick="go('campo.html')">
-      <span class="card-num">4</span>
-      <span class="card-name">campo di battaglia</span>
+      <div class="card-left"><span class="card-icon">🗺️</span><span class="card-num">04</span></div>
+      <div class="card-body">
+        <div class="card-name">campo di battaglia</div>
+        <div class="card-desc">muoviti su griglia, colpisci nemici, recupera vita — sopravvivi</div>
+      </div>
       <span class="card-arrow">▶</span>
     </button>
     <button class="game-card" onclick="go('shop.html')">
-      <span class="card-num">5</span>
-      <span class="card-name">shop</span>
+      <div class="card-left"><span class="card-icon">🛒</span><span class="card-num">05</span></div>
+      <div class="card-body">
+        <div class="card-name">shop</div>
+        <div class="card-desc">cosmetici, effetti, temi — spendi i punti, personalizza tutto</div>
+      </div>
       <span class="card-arrow">▶</span>
     </button>
   </div>
+
+  <div id="footer">sistema v2.0</div>
 </div>
 
 <script>
-// ──────────────────────────────────────────────
-//  COSMETICI — stessa logica dello shop
-// ──────────────────────────────────────────────
 const CSS_MAP = {
-  bg: {
-    'bg-dark':   '--bg:#000',
-    'bg-matrix': '--bg:#001200',
-    'bg-blood':  '--bg:#120000',
-    'bg-deep':   '--bg:#00001a',
-    'bg-ash':    '--bg:#0e0e0e',
-    'bg-amber':  '--bg:#100800',
-    'bg-ice':    '--bg:#00080f',
-    'bg-purple': '--bg:#0a0010',
+  bg:{
+    'bg-dark':'--bg:#000','bg-matrix':'--bg:#001200','bg-blood':'--bg:#120000',
+    'bg-deep':'--bg:#00001a','bg-ash':'--bg:#0e0e0e','bg-amber':'--bg:#100800',
+    'bg-ice':'--bg:#00080f','bg-purple':'--bg:#0a0010','bg-olive':'--bg:#0a0f00',
+    'bg-rust':'--bg:#110800','bg-slate':'--bg:#060a0f','bg-void':'--bg:#050505',
   },
-  font: {
-    'font-mono':    '--font:monospace',
-    'font-courier': "--font:'Courier New',monospace",
-    'font-vt323':   "--font:'VT323',monospace",
-    'font-share':   "--font:'Share Tech Mono',monospace",
-    'font-ibm':     "--font:'IBM Plex Mono',monospace",
+  font:{
+    'font-mono':'--font:monospace','font-courier':"--font:'Courier New',monospace",
+    'font-vt323':"--font:'VT323',monospace",'font-share':"--font:'Share Tech Mono',monospace",
+    'font-ibm':"--font:'IBM Plex Mono',monospace",
   },
-  card: {
-    'card-plain':  '--card-bg:#0a0a0a;--card-border:#222;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
-    'card-double': '--card-bg:#080808;--card-border:#444;--card-radius:0px;--card-shadow:none;--card-border-style:double;--card-border-w:2px',
-    'card-glow':   '--card-bg:#0a0a0a;--card-border:#aaa;--card-radius:2px;--card-shadow:0 0 10px rgba(170,170,170,0.12);--card-border-style:solid;--card-border-w:1px',
-    'card-dash':   '--card-bg:#080808;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:dashed;--card-border-w:1px',
-    'card-thick':  '--card-bg:#050505;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:3px',
-    'card-retro':  '--card-bg:#0d0d00;--card-border:#555;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
-    'card-neon':   '--card-bg:#000;--card-border:#0f0;--card-radius:0px;--card-shadow:0 0 8px rgba(0,255,0,0.25);--card-border-style:solid;--card-border-w:1px',
+  card:{
+    'card-plain':'--card-bg:#0a0a0a;--card-border:#222;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-double':'--card-bg:#080808;--card-border:#444;--card-radius:0px;--card-shadow:none;--card-border-style:double;--card-border-w:2px',
+    'card-glow':'--card-bg:#0a0a0a;--card-border:#aaa;--card-radius:2px;--card-shadow:0 0 10px rgba(170,170,170,0.12);--card-border-style:solid;--card-border-w:1px',
+    'card-dash':'--card-bg:#080808;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:dashed;--card-border-w:1px',
+    'card-thick':'--card-bg:#050505;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:3px',
+    'card-retro':'--card-bg:#0d0d00;--card-border:#555;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
+    'card-neon':'--card-bg:#000;--card-border:#0f0;--card-radius:0px;--card-shadow:0 0 8px rgba(0,255,0,0.25);--card-border-style:solid;--card-border-w:1px',
+    'card-inset':'--card-bg:#050505;--card-border:#111;--card-radius:0px;--card-shadow:inset 0 2px 8px rgba(0,0,0,0.8);--card-border-style:solid;--card-border-w:1px',
+    'card-ghost':'--card-bg:transparent;--card-border:#333;--card-radius:0px;--card-shadow:none;--card-border-style:solid;--card-border-w:1px',
   },
-  accent: {
-    'acc-aaa': '--accent:#aaa;--fg:#aaa',
-    'acc-0f0': '--accent:#0f0;--fg:#0d0',
-    'acc-0ff': '--accent:#0ff;--fg:#0cc',
-    'acc-f80': '--accent:#f80;--fg:#c60',
-    'acc-f0f': '--accent:#f0f;--fg:#c0c',
-    'acc-ff0': '--accent:#ff0;--fg:#cc0',
-    'acc-f00': '--accent:#f00;--fg:#c00',
-    'acc-88f': '--accent:#88f;--fg:#66d',
+  accent:{
+    'acc-aaa':'--accent:#aaa;--fg:#aaa','acc-0f0':'--accent:#0f0;--fg:#0d0',
+    'acc-0ff':'--accent:#0ff;--fg:#0cc','acc-f80':'--accent:#f80;--fg:#c60',
+    'acc-f0f':'--accent:#f0f;--fg:#c0c','acc-ff0':'--accent:#ff0;--fg:#cc0',
+    'acc-f00':'--accent:#f00;--fg:#c00','acc-88f':'--accent:#88f;--fg:#66d',
+    'acc-0af':'--accent:#0af;--fg:#08d','acc-fa0':'--accent:#fa0;--fg:#d80',
+    'acc-aff':'--accent:#aff;--fg:#8ee','acc-f8a':'--accent:#f8a;--fg:#d68',
   },
-  cursor: {
-    'cur-default': '--cursor:default',
-    'cur-cross':   '--cursor:crosshair',
-    'cur-text':    '--cursor:text',
-    'cur-none':    '--cursor:none',
-    'cur-wait':    '--cursor:wait',
+  cursor:{
+    'cur-default':'--cursor:default','cur-cross':'--cursor:crosshair',
+    'cur-text':'--cursor:text','cur-none':'--cursor:none','cur-wait':'--cursor:wait',
   },
-  deco: {
-    'deco-none':     'none',
-    'deco-corner':   'corner',
-    'deco-scan':     'scan',
-    'deco-vignette': 'vignette',
-    'deco-grid':     'grid',
-    'deco-cross':    'cross',
-    'deco-crt':      'crt',
+  deco:{
+    'deco-none':'none','deco-corner':'corner','deco-scan':'scan','deco-vignette':'vignette',
+    'deco-grid':'grid','deco-cross':'cross','deco-crt':'crt','deco-noise':'noise',
+    'deco-glitch':'glitch','deco-rgb':'rgb','deco-sparkle':'sparkle','deco-aurora':'aurora',
+    'deco-rain':'rain','deco-ember':'ember','deco-pulse':'pulse','deco-static':'static',
+    'deco-wave':'wave',
   },
+  menu:{'menu-list':'list','menu-center':'center','menu-grid':'grid'},
+  desc:{'desc-show':'show','desc-hide':'hide'},
 };
 
-function applyCosmetics() {
-  const equipped = JSON.parse(localStorage.getItem('shop-equipped') || '{}');
+function applyCosmetics(){
+  const eq = JSON.parse(localStorage.getItem('shop-equipped')||'{}');
   const root = document.documentElement;
+  const body = document.body;
 
-  ['bg','font','card','accent','cursor'].forEach(cat => {
-    const id = equipped[cat];
-    if (!id || !CSS_MAP[cat] || !CSS_MAP[cat][id]) return;
-    CSS_MAP[cat][id].split(';').forEach(rule => {
+  ['bg','font','card','accent','cursor'].forEach(cat=>{
+    const id = eq[cat];
+    if(!id||!CSS_MAP[cat]||!CSS_MAP[cat][id]) return;
+    CSS_MAP[cat][id].split(';').forEach(rule=>{
       const sep = rule.indexOf(':');
-      if (sep === -1) return;
-      const prop = rule.slice(0, sep).trim();
-      const val  = rule.slice(sep + 1).trim();
-      if (prop && val !== undefined) root.style.setProperty(prop, val);
+      if(sep===-1) return;
+      root.style.setProperty(rule.slice(0,sep).trim(), rule.slice(sep+1).trim());
     });
   });
 
-  // deco: classi su body
-  const body = document.body;
-  body.classList.remove('deco-scan','deco-vignette','deco-grid','deco-cross','deco-crt','deco-corner','deco-lines');
-  const decoId = equipped['deco'];
-  if (decoId && CSS_MAP.deco[decoId]) {
-    const dv = CSS_MAP.deco[decoId];
-    if (dv !== 'none') body.classList.add('deco-' + dv);
-  }
+  // deco
+  const ALL_DECO = ['scan','vignette','grid','cross','crt','corner','lines','noise',
+    'glitch','rgb','sparkle','aurora','rain','ember','pulse','static','wave'];
+  ALL_DECO.forEach(d=>body.classList.remove('deco-'+d));
+  const dv = CSS_MAP.deco[eq['deco']];
+  if(dv && dv!=='none') body.classList.add('deco-'+dv);
+  if(eq['bg']==='bg-ash') body.classList.add('deco-lines');
 
-  // bg-ash aggiunge le linee
-  if (equipped['bg'] === 'bg-ash') body.classList.add('deco-lines');
+  // menu layout
+  body.classList.remove('layout-list','layout-center','layout-grid');
+  body.classList.add('layout-'+(CSS_MAP.menu[eq['menu']]||'list'));
+
+  // desc
+  body.classList.remove('desc-hide');
+  if(eq['desc']==='desc-hide') body.classList.add('desc-hide');
+
+  initCanvas(eq['deco']);
 }
 
+/* ── CANVAS ── */
+let raf=null, parts=[];
+function initCanvas(decoId){
+  const cv = document.getElementById('sparkle-canvas');
+  const cx = cv.getContext('2d');
+  cancelAnimationFrame(raf); parts=[];
+  cv.width=innerWidth; cv.height=innerHeight;
+  const W=cv.width, H=cv.height;
+  const acc = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#aaa';
+
+  if(decoId==='deco-sparkle'){
+    for(let i=0;i<70;i++) parts.push(mkSparkle(W,H,acc));
+    (function loop(){
+      cx.clearRect(0,0,W,H);
+      parts.forEach((p,i)=>{
+        p.life-=p.spd;
+        if(p.life<=0) parts[i]=mkSparkle(W,H,acc);
+        const a=Math.max(0,Math.sin(p.life/p.max*Math.PI))*0.75;
+        cx.save(); cx.globalAlpha=a; cx.fillStyle=p.col;
+        cx.font=p.sz+'px monospace'; cx.fillText(p.ch,p.x,p.y);
+        cx.restore(); p.y+=p.vy;
+      });
+      raf=requestAnimationFrame(loop);
+    })();
+  }
+  else if(decoId==='deco-aurora'){
+    let t=0;
+    (function loop(){
+      cx.clearRect(0,0,W,H); t+=0.004;
+      for(let i=0;i<4;i++){
+        const hue=(i*90+t*25)%360;
+        const g=cx.createLinearGradient(0,0,W,0);
+        g.addColorStop(0,`hsla(${hue},80%,55%,0)`);
+        g.addColorStop(.5,`hsla(${hue},80%,55%,0.055)`);
+        g.addColorStop(1,`hsla(${hue},80%,55%,0)`);
+        cx.fillStyle=g;
+        const y=H*(0.15+i*0.18)+Math.sin(t+i*1.3)*H*0.08;
+        cx.fillRect(0,y,W,70+Math.sin(t*.8+i)*35);
+      }
+      raf=requestAnimationFrame(loop);
+    })();
+  }
+  else if(decoId==='deco-rain'){
+    const cols=Math.floor(W/14);
+    const drops=Array.from({length:cols},()=>Math.random()*H);
+    const chars='ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂ0123456789ABCDEF░▒▓'.split('');
+    (function loop(){
+      cx.fillStyle='rgba(0,0,0,0.045)'; cx.fillRect(0,0,W,H);
+      cx.font='13px monospace';
+      drops.forEach((y,i)=>{
+        const ch=chars[Math.floor(Math.random()*chars.length)];
+        cx.globalAlpha=0.6; cx.fillStyle=acc; cx.fillText(ch,i*14,y);
+        cx.globalAlpha=0.12; cx.fillText(ch,i*14,y-20);
+        cx.globalAlpha=1;
+        if(y>H&&Math.random()>.975) drops[i]=0;
+        drops[i]+=14;
+      });
+      raf=requestAnimationFrame(loop);
+    })();
+  }
+  else if(decoId==='deco-ember'){
+    for(let i=0;i<50;i++) parts.push(mkEmber(W,H,acc));
+    (function loop(){
+      cx.clearRect(0,0,W,H);
+      const now=Date.now()*0.001;
+      parts.forEach((p,i)=>{
+        p.y-=p.vy; p.x+=Math.sin(p.ph+now)*0.6; p.life--;
+        if(p.life<=0) parts[i]=mkEmber(W,H,acc);
+        const a=p.life/p.max*0.65;
+        cx.beginPath(); cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        cx.fillStyle=p.col; cx.globalAlpha=a; cx.fill(); cx.globalAlpha=1;
+      });
+      raf=requestAnimationFrame(loop);
+    })();
+  }
+}
+
+function mkSparkle(W,H,acc){
+  const chars='✦✧⋆·˚◆◇★☆▪▸';
+  return{x:Math.random()*W,y:Math.random()*H,ch:chars[Math.floor(Math.random()*chars.length)],
+    sz:8+Math.random()*10,col:acc,life:Math.random()*100,max:80+Math.random()*60,
+    spd:.5+Math.random()*.8,vy:-.15+Math.random()*.3};
+}
+function mkEmber(W,H,acc){
+  return{x:Math.random()*W,y:H+10,r:1+Math.random()*2.5,
+    vy:.6+Math.random()*1.5,ph:Math.random()*Math.PI*2,col:acc,
+    life:60+Math.random()*140,max:200};
+}
+window.addEventListener('resize',()=>{
+  const cv=document.getElementById('sparkle-canvas');
+  cv.width=innerWidth; cv.height=innerHeight;
+});
+
+document.getElementById('points-count').textContent=
+  parseInt(localStorage.getItem('campo-points')||'0');
+
+function go(href){window.location.href=href;}
+
 applyCosmetics();
-
-// ──────────────────────────────────────────────
-//  PUNTI
-// ──────────────────────────────────────────────
-function getPoints() { return parseInt(localStorage.getItem('campo-points') || '0'); }
-document.getElementById('points-count').textContent = getPoints();
-
-// ──────────────────────────────────────────────
-//  NAVIGAZIONE
-// ──────────────────────────────────────────────
-function go(href) { window.location.href = href; }
 </script>
 </body>
 </html>
