@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Super Mario NES Clone</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    height: 100%;
+    font-family: monospace;
+    overflow: hidden;
+    touch-action: none;
+  }
+  #game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 512px;
+  }
+  #hud {
+    width: 100%;
+    background: #5c94fc;
+    color: #fff;
+    font-size: clamp(7px, 2vw, 13px);
+    font-weight: bold;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    font-family: 'Press Start 2P', monospace;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  #canvas-container {
+    width: 100%;
+    position: relative;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 3px solid #111;
+  }
+  #msg {
+    width: 100%;
+    background: #000;
+    color: #fc0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.5vw, 10px);
+    text-align: center;
+    padding: 4px;
+    letter-spacing: 1px;
+  }
+  /* Touch controls */
+  #touch-controls {
+    display: none;
+    width: 100%;
+    max-width: 512px;
+    background: #111;
+    padding: 10px 8px 16px;
+    user-select: none;
+  }
+  #touch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  #dpad {
+    display: grid;
+    grid-template-columns: 44px 44px 44px;
+    grid-template-rows: 44px 44px 44px;
+    gap: 3px;
+  }
+  .dpad-btn {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.05s;
+  }
+  .dpad-btn:active, .dpad-btn.pressed {
+    background: rgba(255,255,255,0.4);
+  }
+  .dpad-empty { background: transparent; border: none; }
+  #action-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  #action-row1 {
+    display: flex;
+    gap: 10px;
+  }
+  .action-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.5);
+    transition: transform 0.05s, box-shadow 0.05s;
+    color: #fff;
+  }
+  .action-btn:active, .action-btn.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  }
+  #btn-jump { background: #e03030; }
+  #btn-run  { background: #e09000; }
+  /* show touch controls on touch devices */
+  @media (pointer: coarse) {
+    #touch-controls { display: block; }
+    #msg { font-size: 8px; }
+    #msg .desktop-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="game-wrapper">
+  <div id="hud">
+    <span id="hud-mario">MARIO</span>
+    <span id="hud-score">000000</span>
+    <span id="hud-lives">♥♥♥</span>
+    <span id="hud-world">WORLD 1-1</span>
+    <span id="hud-time">TIME <span id="hud-timer">300</span></span>
+  </div>
+  <div id="canvas-container">
+    <canvas id="c" width="512" height="320"></canvas>
+  </div>
+  <div id="msg"><span class="desktop-hint">← → corri &nbsp; Z/SPAZIO salta &nbsp; X corri veloce &nbsp; Q esci</span><span class="mobile-hint" style="display:none">Usa i tasti qui sotto</span></div>
+</div>
+
+<!-- Touch Controls -->
+<div id="touch-controls">
+  <div id="touch-row">
+    <!-- D-Pad -->
+    <div id="dpad">
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-up">▲</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-left">◀</div>
+      <div class="dpad-empty dpad-center"></div>
+      <div class="dpad-btn" id="btn-right">▶</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-empty"></div>
+    </div>
+    <!-- Action buttons -->
+    <div id="action-btns">
+      <div id="action-row1">
+        <button class="action-btn" id="btn-run">CORRI</button>
+        <button class="action-btn" id="btn-jump">SALTA</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ── DETECT MOBILE ──
+const isMobile = window.matchMedia('(pointer: coarse)').matches;
+if (isMobile) {
+  document.querySelector('.desktop-hint').style.display = 'none';
+  document.querySelector('.mobile-hint').style.display = 'inline';
+}
+
+// ── AUDIO ──
+const _sfxJump   = new Audio('jump.mp3');
+const _sfxStomp  = new Audio('stmp.mp3');
+const _bgm       = new Audio('ost1.mp3')
+_bgm.loop = true; _bgm.volume = 0.6;
+function playBGM(){ if(_bgm.paused) _bgm.play().catch(()=>{}); }
+function sfx(a){ const c=a.cloneNode(); c.volume=0.8; c.play().catch(()=>{}); }
+document.addEventListener('click', playBGM, {once:true});
+document.addEventListener('keydown', playBGM, {once:true});
+
+// ============================================================
+// NES PALETTE (subset)
+// ============================================================
+const C = {
+  sky:      '#5c94fc',
+  ground:   '#c84c0c',
+  gndTop:   '#e09050',
+  brick:    '#c84c0c',
+  brickHi:  '#e07030',
+  brickSh:  '#7a2500',
+  block:    '#f0b000',
+  blockSh:  '#a07000',
+  blockHi:  '#fff0a0',
+  mario:    '#e04000',
+  marioBod: '#ffb0a0',
+  marioCap: '#e04000',
+  marioOvr: '#0808a0',
+  goomba:   '#c85000',
+  goombaDk: '#7a2800',
+  cloud:    '#ffffff',
+  cloudSh:  '#c0c0c0',
+  bushG:    '#00a800',
+  bushDk:   '#006300',
+  pipe:     '#00a800',
+  pipeDk:   '#006300',
+  pipeLit:  '#78f878',
+  coin:     '#f8d800',
+  coinSh:   '#c89800',
+  flag:     '#00a800',
+};
+
+const W = 512, H = 320;
+const SCALE = 2;
+const TILE = 16 * SCALE;
+const GND_Y = H - TILE;
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function px(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
+
+function drawMario(cx, cy, dir, frame, inv) {
+  if (inv && Math.floor(Date.now()/80)%2===0) return;
+  const S=SCALE, x=cx, y=cy;
+  px(x+2*S,y,    8*S,2*S, C.marioCap);
+  px(x,    y+2*S,12*S,2*S, C.marioCap);
+  px(x+2*S,y+4*S,10*S,6*S, C.marioBod);
+  const eyeX = dir>=0 ? x+8*S : x+4*S;
+  px(eyeX, y+4*S, 2*S,2*S, '#000');
+  px(x+2*S, y+8*S, 10*S,2*S, C.marioCap);
+  px(x,     y+10*S, 16*S,4*S, C.marioOvr);
+  px(x+2*S, y+6*S,  4*S,4*S, C.marioOvr);
+  px(x+10*S,y+6*S,  4*S,4*S, C.marioOvr);
+  px(x+2*S, y+12*S, 2*S,2*S, C.coin);
+  px(x+12*S,y+12*S, 2*S,2*S, C.coin);
+  const leg = frame%2===0;
+  if (leg) {
+    px(x,      y+14*S,  6*S,4*S, C.marioCap);
+    px(x+10*S, y+14*S,  6*S,4*S, C.marioCap);
+  } else {
+    px(x+2*S,  y+14*S,  4*S,4*S, C.marioCap);
+    px(x+8*S,  y+14*S,  6*S,4*S, C.marioCap);
+  }
+  const shoeY = y+16*S;
+  if (leg) {
+    px(x-2*S, shoeY, 8*S,2*S, '#000');
+    px(x+8*S, shoeY, 8*S,2*S, '#000');
+  } else {
+    px(x,     shoeY, 8*S,2*S, '#000');
+    px(x+10*S,shoeY, 6*S,2*S, '#000');
+  }
+}
+
+function drawGoomba(cx, cy, frame) {
+  const S=SCALE, x=cx, y=cy;
+  px(x+2*S, y,     12*S,10*S, C.goomba);
+  px(x,     y+4*S, 16*S,8*S,  C.goomba);
+  const walk = frame%2===0;
+  if (walk) {
+    px(x,      y+12*S, 6*S, 4*S, C.goombaDk);
+    px(x+10*S, y+12*S, 6*S, 4*S, C.goombaDk);
+  } else {
+    px(x+2*S,  y+12*S, 6*S, 4*S, C.goombaDk);
+    px(x+8*S,  y+12*S, 6*S, 4*S, C.goombaDk);
+  }
+  px(x+2*S, y+2*S, 4*S,4*S, '#fff');
+  px(x+10*S,y+2*S, 4*S,4*S, '#fff');
+  px(x+4*S, y+4*S, 2*S,2*S, '#000');
+  px(x+10*S,y+4*S, 2*S,2*S, '#000');
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.moveTo(x+2*S, y+2*S); ctx.lineTo(x+6*S, y+4*S); ctx.lineTo(x+2*S,y+4*S); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x+14*S,y+2*S); ctx.lineTo(x+10*S,y+4*S); ctx.lineTo(x+14*S,y+4*S); ctx.fill();
+  px(x+4*S, y+8*S, 8*S,2*S, C.goombaDk);
+  px(x+4*S, y+8*S, 2*S,4*S, '#fff');
+  px(x+10*S,y+8*S, 2*S,4*S, '#fff');
+}
+
+function drawGround(x, y, w, h) {
+  px(x,y,w,h, C.ground);
+  px(x,y, w,SCALE, C.gndTop);
+  ctx.fillStyle = C.brickSh;
+  for (let bx=x; bx<x+w; bx+=TILE) {
+    ctx.fillRect(bx, y, SCALE, h);
+    ctx.fillRect(bx, y+TILE/2, TILE, SCALE);
+  }
+}
+
+function drawQuestionBlock(x, y, hit) {
+  const S=SCALE;
+  const col = hit ? '#808080' : C.block;
+  px(x,y, TILE,TILE, col);
+  px(x,y, TILE,S, hit?'#aaa':C.blockHi);
+  px(x,y+TILE-S,TILE,S, hit?'#555':C.blockSh);
+  px(x,y,S,TILE, hit?'#aaa':C.blockHi);
+  px(x+TILE-S,y,S,TILE, hit?'#555':C.blockSh);
+  if (!hit) {
+    ctx.fillStyle='#fff';
+    ctx.font = `bold ${8*S}px monospace`;
+    ctx.textAlign='center';
+    ctx.fillText('?', x+TILE/2, y+TILE-4*S);
+  }
+}
+
+function drawCloud(x, y) {
+  const S=SCALE;
+  px(x+2*S, y+4*S, 12*S,8*S, C.cloud);
+  px(x,     y+8*S, 16*S,6*S, C.cloud);
+  px(x+4*S, y,     8*S, 6*S, C.cloud);
+  px(x+2*S, y+2*S, 12*S,2*S,C.cloud);
+  px(x,y+12*S,16*S,2*S,C.cloudSh);
+}
+
+function drawPipe(x, y, h) {
+  const S=SCALE, TW=3*TILE/2;
+  px(x+S,    y+TILE, TW-2*S, h-TILE, C.pipe);
+  px(x+S,    y+TILE, S,      h-TILE, C.pipeLit);
+  px(x+TW-2*S,y+TILE,S,     h-TILE, C.pipeDk);
+  px(x,      y,      TW,     TILE,   C.pipe);
+  px(x,      y,      S,      TILE,   C.pipeLit);
+  px(x+TW-S, y,      S,      TILE,   C.pipeDk);
+  px(x,      y,      TW,     S,      C.pipeLit);
+}
+
+function drawBush(x, y) {
+  const S=SCALE;
+  px(x+4*S, y+4*S, 8*S,4*S,  C.bushG);
+  px(x,     y+8*S, 16*S,4*S, C.bushG);
+  px(x+2*S, y+4*S, 12*S,4*S, C.bushG);
+  px(x+6*S, y,     4*S,4*S,  C.bushG);
+  px(x,     y+8*S, 4*S,2*S,  C.bushDk);
+}
+
+// ============================================================
+// GAME
+// ============================================================
+const GRAVITY = 0.35;
+const JUMP_V  = -8.5;
+const WALK_V  = 3.2;
+const RUN_V   = 5.0;
+const MAX_ENM = 5;
+
+let score=0, lives=3, timer=300, timerTick=0;
+let gameOver=false, won=false, gameStarted=false;
+let wonTimer=0, wonRedirected=false;
+
+let camX = 0;
+
+const LEVEL_W = 3200;
+const qblocks = [
+  {x:160,y:GND_Y-3*TILE,hit:false},
+  {x:224,y:GND_Y-3*TILE,hit:false},
+  {x:192,y:GND_Y-5*TILE,hit:false},
+  {x:400,y:GND_Y-3*TILE,hit:false},
+  {x:600,y:GND_Y-3*TILE,hit:false},
+  {x:850,y:GND_Y-4*TILE,hit:false},
+  {x:1100,y:GND_Y-3*TILE,hit:false},
+  {x:1400,y:GND_Y-3*TILE,hit:false},
+];
+const pipes = [
+  {x:500, h:2},{x:750,h:3},{x:1000,h:2},{x:1300,h:3},{x:1700,h:2},{x:2000,h:3},{x:2400,h:2},{x:2800,h:3}
+];
+const clouds = [
+  {x:80},{x:300},{x:580},{x:820},{x:1100},{x:1400},{x:1700},{x:2100},{x:2500},{x:2900}
+];
+const bushes = [
+  {x:60},{x:250},{x:480},{x:700},{x:1000},{x:1300},{x:1600},{x:1900},{x:2200},{x:2600}
+];
+
+const FLAG_X = LEVEL_W - 200;
+
+let enemies = [];
+for (let i=0; i<MAX_ENM; i++) {
+  enemies.push({
+    x: 300 + i*450 + Math.random()*100,
+    y: GND_Y - TILE,
+    vx: -1.2,
+    alive: true,
+    dead: false,
+    deadTimer: 0,
+    frame: 0,
+    frameTimer: 0,
+  });
+}
+
+let mario = {
+  x: 60,
+  y: GND_Y - TILE,
+  vy: 0,
+  vx: 0,
+  onGround: true,
+  dir: 1,
+  frame: 0,
+  frameTimer: 0,
+  invincible: 0,
+};
+
+// ── INPUT ──
+const keys = {};
+document.addEventListener('keydown', e=>{ keys[e.code]=true; });
+document.addEventListener('keyup',   e=>{ keys[e.code]=false; });
+function isKey(...codes){ return codes.some(c=>keys[c]); }
+
+// ── TOUCH INPUT ──
+const touchKeys = { left: false, right: false, jump: false, run: false };
+
+function setupTouchBtn(id, key) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const press = (e) => { e.preventDefault(); touchKeys[key] = true; el.classList.add('pressed'); playBGM(); };
+  const release = (e) => { e.preventDefault(); touchKeys[key] = false; el.classList.remove('pressed'); };
+  el.addEventListener('touchstart', press, {passive: false});
+  el.addEventListener('touchend', release, {passive: false});
+  el.addEventListener('touchcancel', release, {passive: false});
+  el.addEventListener('mousedown', press);
+  el.addEventListener('mouseup', release);
+  el.addEventListener('mouseleave', release);
+}
+
+setupTouchBtn('btn-left', 'left');
+setupTouchBtn('btn-right', 'right');
+setupTouchBtn('btn-up', 'jump');
+setupTouchBtn('btn-jump', 'jump');
+setupTouchBtn('btn-run', 'run');
+
+// Enter touch restart
+const enterBtn = document.createElement('div');
+function showRestartTouch() {
+  if (!isMobile) return;
+  document.getElementById('touch-controls').style.display = 'none';
+  if (!document.getElementById('restart-touch')) {
+    const rb = document.createElement('button');
+    rb.id = 'restart-touch';
+    rb.textContent = 'RICOMINCIA';
+    rb.style.cssText = 'margin:10px auto;display:block;padding:12px 24px;background:#e04000;color:#fff;font-family:"Press Start 2P",monospace;font-size:11px;border:none;border-radius:6px;cursor:pointer;';
+    rb.addEventListener('touchstart', () => { resetGame(); rb.remove(); document.getElementById('touch-controls').style.display = 'block'; });
+    document.getElementById('game-wrapper').appendChild(rb);
+  }
+}
+
+function isLeft()  { return isKey('ArrowLeft','KeyA') || touchKeys.left; }
+function isRight() { return isKey('ArrowRight','KeyD') || touchKeys.right; }
+function isJump()  { return isKey('ArrowUp','Space','KeyW','KeyZ') || touchKeys.jump; }
+function isRun()   { return isKey('KeyX','ShiftLeft','ShiftRight') || touchKeys.run; }
+
+let jumpHeld=false;
+
+function pipe_solid(px_) {
+  return pipes.filter(p=>{
+    const pw=3*TILE/2;
+    return px_>=p.x && px_<p.x+pw;
+  });
+}
+
+function update() {
+  if (keys['KeyQ']) { gameOver=true; won=false; }
+
+  const running = isRun();
+  const speed = running ? RUN_V : WALK_V;
+
+  let ax=0;
+  if (isRight()) { ax= speed; mario.dir= 1; }
+  if (isLeft())  { ax=-speed; mario.dir=-1; }
+  mario.vx = ax;
+
+  const wantJump = isJump();
+  if (wantJump && !jumpHeld && mario.onGround) {
+    mario.vy = JUMP_V;
+    mario.onGround = false;
+    sfx(_sfxJump);
+  }
+  jumpHeld = wantJump;
+
+  mario.vy += GRAVITY;
+  mario.y  += mario.vy;
+  mario.x  += mario.vx;
+
+  if (mario.x < 0) mario.x=0;
+  if (mario.x > FLAG_X + TILE) { gameOver=true; won=true; }
+
+  mario.onGround = false;
+  if (mario.y >= GND_Y - TILE) {
+    mario.y = GND_Y - TILE;
+    mario.vy = 0;
+    mario.onGround = true;
+  }
+
+  for (const p of pipes) {
+    const pw=3*TILE/2, ph=p.h*TILE;
+    const py=GND_Y-ph;
+    if (mario.x+TILE > p.x && mario.x < p.x+pw) {
+      if (mario.vy>=0 && mario.y+TILE>py && mario.y+TILE<py+TILE/2+mario.vy+1) {
+        mario.y=py-TILE;
+        mario.vy=0;
+        mario.onGround=true;
+      } else if (mario.y+TILE>py && mario.y<GND_Y) {
+        if (mario.vx>0) mario.x=p.x-TILE;
+        else            mario.x=p.x+pw;
+        mario.vx=0;
+      }
+    }
+  }
+
+  for (const b of qblocks) {
+    if (mario.x+TILE-4>b.x && mario.x+4<b.x+TILE) {
+      if (mario.vy<0 && mario.y<b.y+TILE && mario.y>b.y) {
+        mario.vy=0;
+        mario.y=b.y+TILE;
+        if (!b.hit) { b.hit=true; score+=100; spawnCoin(b.x+TILE/2,b.y); }
+      }
+      if (mario.vy>=0 && mario.y+TILE>b.y && mario.y+TILE<b.y+TILE) {
+        mario.y=b.y-TILE;
+        mario.vy=0;
+        mario.onGround=true;
+      }
+    }
+  }
+
+  const targetCamX = mario.x - W/4;
+  camX = Math.max(0, Math.min(targetCamX, LEVEL_W - W));
+
+  for (const e of enemies) {
+    if (!e.alive) {
+      if (e.dead) { e.deadTimer--; }
+      continue;
+    }
+    e.x += e.vx;
+    if (e.x<0) { e.vx=Math.abs(e.vx); }
+    if (e.x>LEVEL_W-TILE) { e.vx=-Math.abs(e.vx); }
+    for (const p of pipes) {
+      const pw=3*TILE/2;
+      if (e.x+TILE>p.x && e.x<p.x+pw && e.y+TILE>=GND_Y-p.h*TILE) {
+        e.vx=-e.vx; e.x+=e.vx*2;
+      }
+    }
+    e.frameTimer++;
+    if (e.frameTimer>8){ e.frame=(e.frame+1)%2; e.frameTimer=0; }
+  }
+
+  if (mario.invincible>0) mario.invincible--;
+
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const mx=mario.x, my=mario.y, mw=TILE, mh=TILE;
+    const ex=e.x,     ey=e.y,     ew=TILE, eh=TILE;
+    const overlapX = mx+mw > ex+4 && mx+4 < ex+ew-4;
+    const overlapY = my+mh > ey   && my   < ey+eh;
+    if (overlapX && overlapY) {
+      const stomp = mario.vy>0 && my+mh < ey+TILE/2+mario.vy+2;
+      if (stomp) {
+        e.alive=false; e.dead=true; e.deadTimer=30;
+        mario.vy=-5;
+        score+=200;
+        sfx(_sfxStomp);
+      } else if (mario.invincible===0) {
+        lives--;
+        mario.invincible=120;
+        mario.x=60; mario.y=GND_Y-TILE; mario.vy=0;
+        camX=0;
+        if (lives<=0){ gameOver=true; won=false; }
+      }
+    }
+  }
+
+  mario.frameTimer++;
+  if (mario.vx!==0 && mario.onGround && mario.frameTimer>6){
+    mario.frame=(mario.frame+1)%4; mario.frameTimer=0;
+  }
+
+  timerTick++;
+  if (timerTick>=60){ timerTick=0; timer--; if(timer<=0){gameOver=true;won=false;} }
+}
+
+const coinParticles=[];
+function spawnCoin(x,y){ coinParticles.push({x,y,vy:-4,life:40}); }
+function updateCoins(){
+  for(let i=coinParticles.length-1;i>=0;i--){
+    const c=coinParticles[i];
+    c.vy+=0.3; c.y+=c.vy; c.life--;
+    if(c.life<=0) coinParticles.splice(i,1);
+  }
+}
+
+function drawScene() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=C.sky;
+  ctx.fillRect(0,0,W,H);
+
+  for (const cl of clouds) {
+    const sx = cl.x - camX*0.4;
+    if (sx>-TILE*2 && sx<W+TILE*2)
+      drawCloud(sx, 32);
+  }
+
+  for (const b of bushes) {
+    const sx=b.x-camX;
+    if (sx>-TILE*2 && sx<W+TILE*2)
+      drawBush(sx, GND_Y-TILE);
+  }
+
+  for (const p of pipes) {
+    const sx=p.x-camX;
+    if (sx>-TILE*3 && sx<W+TILE*3)
+      drawPipe(sx, GND_Y-p.h*TILE, p.h*TILE);
+  }
+
+  for (const b of qblocks) {
+    const sx=b.x-camX;
+    if (sx>-TILE && sx<W+TILE)
+      drawQuestionBlock(sx, b.y, b.hit);
+  }
+
+  const fpx=FLAG_X-camX;
+  if (fpx>-TILE && fpx<W) {
+    ctx.fillStyle='#aaa';
+    ctx.fillRect(fpx+TILE/2-SCALE, GND_Y-8*TILE, SCALE*2, 8*TILE);
+    ctx.fillStyle=C.flag;
+    ctx.fillRect(fpx+TILE/2, GND_Y-8*TILE, TILE, TILE);
+    ctx.fillStyle=C.coin;
+    ctx.beginPath();
+    ctx.arc(fpx+TILE/2, GND_Y-8*TILE, SCALE*3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  for (const c of coinParticles) {
+    const sx=c.x-camX;
+    px(sx-SCALE*2, c.y, SCALE*4,SCALE*6, C.coin);
+    px(sx-SCALE,   c.y, SCALE*2,SCALE*6, C.coinSh);
+  }
+
+  drawGround(0, GND_Y, W, H-GND_Y);
+
+  for (const e of enemies) {
+    const sx=e.x-camX;
+    if (sx<-TILE || sx>W+TILE) continue;
+    if (e.dead && e.deadTimer>0) {
+      ctx.fillStyle=C.goomba;
+      ctx.fillRect(sx, e.y+TILE-SCALE*6, TILE, SCALE*6);
+      px(sx,e.y+TILE-SCALE*4, TILE,SCALE*4, C.goombaDk);
+    } else if (e.alive) {
+      drawGoomba(sx, e.y, e.frame);
+    }
+  }
+
+  const msx=mario.x-camX;
+  drawMario(msx, mario.y, mario.dir, mario.frame, mario.invincible>0);
+}
+
+function drawHUD() {
+  document.getElementById('hud-score').textContent=String(score).padStart(6,'0');
+  document.getElementById('hud-lives').textContent='♥'.repeat(Math.max(0,lives));
+  document.getElementById('hud-timer').textContent=timer;
+}
+
+function drawGameOver() {
+  ctx.fillStyle='rgba(0,0,0,0.7)';
+  ctx.fillRect(0,0,W,H);
+
+  if (won) {
+    if (!wonRedirected && wonTimer === 0) wonTimer = 1;
+    if (!wonRedirected) wonTimer++;
+    const secondsLeft = Math.max(0, Math.ceil((300 - wonTimer) / 60));
+
+    ctx.fillStyle='#f8d800';
+    ctx.font='bold 20px "Press Start 2P", monospace';
+    ctx.textAlign='center';
+    ctx.fillText('HAI VINTO!', W/2, H/2-60);
+
+    ctx.fillStyle='#ffffff';
+    ctx.font='10px "Press Start 2P", monospace';
+    ctx.fillText('perfetto, ora', W/2, H/2-20);
+
+    const blink = Math.floor(Date.now()/400)%2===0;
+    ctx.fillStyle = blink ? '#ff0000' : '#cc0000';
+    ctx.font='bold 16px "Press Start 2P", monospace';
+    ctx.fillText('UCCIDILI TUTTI', W/2, H/2+14);
+
+    ctx.fillStyle='#aaaaaa';
+    ctx.font='9px "Press Start 2P", monospace';
+    ctx.fillText('in arrivo... ' + secondsLeft, W/2, H/2+52);
+
+    if (wonTimer >= 300 && !wonRedirected) {
+      wonRedirected = true;
+      window.location.href = 'mario_nes_endless.html';
+    }
+  } else {
+    ctx.fillStyle='#fc0000';
+    ctx.font='bold 20px "Press Start 2P", monospace';
+    ctx.textAlign='center';
+    ctx.fillText('GAME OVER', W/2, H/2-24);
+    ctx.fillStyle='#fff';
+    ctx.font='12px "Press Start 2P", monospace';
+    ctx.fillText('Punti: '+score, W/2, H/2+8);
+    if (!isMobile) ctx.fillText('Premi INVIO per rifare', W/2, H/2+36);
+    else           ctx.fillText('Tocca RICOMINCIA', W/2, H/2+36);
+    showRestartTouch();
+  }
+}
+
+function resetGame() {
+  score=0; lives=3; timer=300; timerTick=0;
+  gameOver=false; won=false; wonTimer=0; wonRedirected=false;
+  mario.x=60; mario.y=GND_Y-TILE; mario.vy=0; mario.vx=0;
+  mario.onGround=true; mario.invincible=0; mario.frame=0;
+  camX=0;
+  coinParticles.length=0;
+  for (const b of qblocks) b.hit=false;
+  enemies.length=0;
+  for (let i=0;i<MAX_ENM;i++) {
+    enemies.push({
+      x: 300+i*450+Math.random()*100,
+      y: GND_Y-TILE, vx:-1.2,
+      alive:true, dead:false, deadTimer:0,
+      frame:0, frameTimer:0,
+    });
+  }
+}
+
+function loop() {
+  if (!gameOver) {
+    update();
+    updateCoins();
+    drawScene();
+    drawHUD();
+  } else {
+    drawScene();
+    drawGameOver();
+    if (keys['Enter']) resetGame();
+  }
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

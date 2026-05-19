@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mario Arena</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background:#000;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start;
+    min-height:100vh; height:100%; overflow:hidden;
+    touch-action: none;
+  }
+  #game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+  }
+  #hud {
+    width:100%; background:#5c94fc;
+    color:#fff; font-family:'Press Start 2P',monospace;
+    font-size:clamp(7px,1.8vw,11px); display:flex;
+    justify-content:space-between; align-items:center;
+    padding:5px 8px; border-bottom:2px solid #000;
+    flex-wrap: wrap; gap: 4px;
+  }
+  #canvas-container {
+    width: 100%;
+    position: relative;
+  }
+  canvas {
+    display:block;
+    width: 100%;
+    height: auto;
+    image-rendering:pixelated;
+    image-rendering: crisp-edges;
+    border:3px solid #111;
+  }
+  #msg {
+    width:100%; background:#000; color:#fc0;
+    font-family:'Press Start 2P',monospace;
+    font-size:clamp(6px,1.4vw,9px);
+    text-align:center; padding:4px; letter-spacing:1px;
+  }
+  /* Touch controls */
+  #touch-controls {
+    display: none;
+    width: 100%;
+    max-width: 800px;
+    background: #111;
+    padding: 10px 8px 16px;
+    user-select: none;
+  }
+  #touch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  #dpad {
+    display: grid;
+    grid-template-columns: 44px 44px 44px;
+    grid-template-rows: 44px 44px 44px;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .dpad-btn {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.05s;
+  }
+  .dpad-btn:active, .dpad-btn.pressed {
+    background: rgba(255,255,255,0.4);
+  }
+  .dpad-empty { background: transparent !important; border: none !important; }
+  #action-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  #action-row1, #action-row2 {
+    display: flex;
+    gap: 8px;
+  }
+  .action-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.5);
+    transition: transform 0.05s, box-shadow 0.05s;
+    color: #fff;
+    text-align: center;
+    line-height: 1.2;
+    padding: 4px;
+  }
+  .action-btn:active, .action-btn.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  }
+  #btn-jump  { background: #e03030; }
+  #btn-run   { background: #e09000; }
+  #btn-shoot { background: #cc5500; }
+  #btn-parry { background: #006699; }
+  .btn-locked { opacity: 0.35; }
+
+  @media (pointer: coarse) {
+    #touch-controls { display: block; }
+    #msg .desktop-hint { display: none; }
+  }
+  @media (max-width: 420px) {
+    .action-btn { width: 48px; height: 48px; font-size: 7px; }
+    #dpad { grid-template-columns: 40px 40px 40px; grid-template-rows: 40px 40px 40px; }
+    .dpad-btn { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div id="game-wrapper">
+  <div id="hud">
+    <span>MARIO</span>
+    <span id="h-kills">☠ 0</span>
+    <span style="display:flex;align-items:center;gap:5px;">
+      <span style="color:#ff5555">♥</span>
+      <span style="background:#400;border:2px solid #fff;display:inline-block;width:80px;height:11px;vertical-align:middle;">
+        <span id="hp-bar-fill" style="display:block;height:100%;width:100%;background:#00e000;transition:width 0.1s,background 0.2s;"></span>
+      </span>
+      <span id="hp-val" style="min-width:24px">100</span>
+    </span>
+    <span id="h-power">🔫 20k</span>
+    <span id="h-alive">👾 0/12</span>
+  </div>
+  <div id="canvas-container">
+    <canvas id="c" width="800" height="400"></canvas>
+  </div>
+  <div id="msg">
+    <span class="desktop-hint">← → muovi &nbsp;|&nbsp; Z/SPAZIO salta &nbsp;|&nbsp; X corri/spara &nbsp;|&nbsp; C para</span>
+    <span class="mobile-hint" style="display:none">Usa i controlli qui sotto</span>
+  </div>
+</div>
+
+<!-- Touch Controls -->
+<div id="touch-controls">
+  <div id="touch-row">
+    <!-- D-Pad -->
+    <div id="dpad">
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-up">▲</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-left">◀</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-right">▶</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-empty"></div>
+    </div>
+    <!-- Action Buttons -->
+    <div id="action-btns">
+      <div id="action-row1">
+        <button class="action-btn btn-locked" id="btn-parry">PARA<br>C</button>
+        <button class="action-btn btn-locked" id="btn-shoot">SPARA<br>X</button>
+      </div>
+      <div id="action-row2">
+        <button class="action-btn" id="btn-run">CORRI<br>X</button>
+        <button class="action-btn" id="btn-jump">SALTA<br>Z</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+const isMobile = window.matchMedia('(pointer: coarse)').matches;
+if (isMobile) {
+  document.querySelector('.desktop-hint').style.display = 'none';
+  document.querySelector('.mobile-hint').style.display = 'inline';
+}
+
+// ── AUDIO ──
+const _sfxJump   = new Audio('jump.mp3');
+const _sfxStomp  = new Audio('stmp.mp3');
+const _sfxParry  = new Audio('parry.mp3');
+const _bgm       = new Audio('ost2.mp3')
+_bgm.loop = true; _bgm.volume = 0.6;
+function playBGM(){ if(_bgm.paused) _bgm.play().catch(()=>{}); }
+function sfx(a){ const c=a.cloneNode(); c.volume=0.8; c.play().catch(()=>{}); }
+document.addEventListener('click', playBGM, {once:true});
+document.addEventListener('keydown', playBGM, {once:true});
+
+const C = {
+  sky:'#5c94fc', skyBot:'#3070e0',
+  ground:'#c84c0c', gndTop:'#e09050', gndSh:'#7a2500',
+  block:'#f0b000', blockHi:'#fff0a0', blockSh:'#a07000',
+  marioBod:'#ffb0a0', mario:'#e04000', marioOvr:'#0808a0',
+  goomba:'#c85000', goombaDk:'#7a2800',
+  cloud:'#ffffff', cloudSh:'#d0d0d0',
+  bush:'#00a800', bushDk:'#006300',
+  pipe:'#00a800', pipeDk:'#006300', pipeLit:'#78f878',
+  coin:'#f8d800', coinSh:'#c89800',
+  wall:'#8b4513', wallHi:'#cd853f', wallSh:'#4a2000',
+  fireball:'#ff6000', fireballGlow:'#ffff00',
+  enemyBullet:'#ff00ff', enemyBulletGlow:'#ff80ff',
+  shield:'#00ffff',
+};
+
+const W=800, H=400, S=2, T=32;
+const AW=2400;
+const GY=H-T;
+const WALL=T;
+const MAX_ALIVE=12;
+const SPAWN_TICKS=80;
+const PLT_H=T;
+
+const KILL_GUN    = 20;
+const KILL_EGUNS  = 30;
+const KILL_PARRY  = 35;
+const MAX_HP      = 100;
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+function px(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h);}
+
+let unlockMsg='', unlockTimer=0;
+function showUnlock(msg){ unlockMsg=msg; unlockTimer=180; }
+
+function drawMario(x,y,dir,frame,inv,hasGun,canParry){
+  if(inv&&Math.floor(Date.now()/70)%2===0)return;
+  if(canParry){
+    ctx.save();
+    ctx.globalAlpha=0.25+0.15*Math.sin(Date.now()/120);
+    px(x-4,y-4,T+8,T+8,C.shield);
+    ctx.restore();
+  }
+  px(x+4,y,16,4,C.mario); px(x,y+4,24,4,C.mario);
+  px(x+4,y+8,20,12,C.marioBod);
+  px(dir>=0?x+16:x+8,y+8,4,4,'#000');
+  px(x+4,y+16,20,4,C.mario);
+  px(x,y+20,32,8,C.marioOvr);
+  px(x+4,y+12,8,8,C.marioOvr); px(x+20,y+12,8,8,C.marioOvr);
+  const f=frame%2===0;
+  px(f?x:x+4,y+28,f?12:8,8,C.mario);
+  px(f?x+20:x+16,y+28,f?12:12,8,C.mario);
+  px(f?x-4:x,y+32,16,4,'#000');
+  px(f?x+16:x+20,y+32,16,4,'#000');
+  if(hasGun){
+    const gx=dir>=0?x+24:x-6, gy=y+16;
+    px(gx,gy,10,5,'#888');
+    px(gx+(dir>=0?8:-4),gy+1,4,3,'#555');
+  }
+}
+
+function drawGoomba(x,y,frame,hasGun){
+  const f=frame%2===0;
+  px(x+4,y,24,20,C.goomba); px(x,y+8,32,16,C.goomba);
+  px(f?x:x+4,y+24,12,8,C.goombaDk);
+  px(f?x+20:x+16,y+24,12,8,C.goombaDk);
+  px(x+4,y+4,8,8,'#fff'); px(x+20,y+4,8,8,'#fff');
+  px(x+8,y+8,4,4,'#000'); px(x+20,y+8,4,4,'#000');
+  ctx.fillStyle='#000';
+  ctx.beginPath();ctx.moveTo(x+4,y+4);ctx.lineTo(x+12,y+8);ctx.lineTo(x+4,y+8);ctx.fill();
+  ctx.beginPath();ctx.moveTo(x+28,y+4);ctx.lineTo(x+20,y+8);ctx.lineTo(x+28,y+8);ctx.fill();
+  px(x+8,y+16,16,4,C.goombaDk);
+  px(x+8,y+16,4,8,'#fff'); px(x+20,y+16,4,8,'#fff');
+  if(hasGun){
+    px(x+32,y+14,8,4,'#888');
+    px(x+38,y+13,3,3,'#555');
+  }
+}
+
+function drawFireball(x,y,bounce){
+  const blink=Math.floor(Date.now()/60)%2===0;
+  px(x,y,12,12,blink?C.fireball:C.fireballGlow);
+  px(x+2,y+2,8,8,blink?C.fireballGlow:C.fireball);
+}
+
+function drawEnemyBullet(x,y){
+  const blink=Math.floor(Date.now()/60)%2===0;
+  px(x,y,18,11,blink?C.enemyBullet:C.enemyBulletGlow);
+  px(x+3,y+2,12,7,blink?C.enemyBulletGlow:C.enemyBullet);
+  px(x,y+3,4,5,'#cc00cc');
+  px(x+14,y+3,4,5,'#ff40ff');
+}
+
+function drawGround(x,y,w,h){
+  px(x,y,w,h,C.ground); px(x,y,w,S,C.gndTop);
+  ctx.fillStyle=C.gndSh;
+  for(let bx=0;bx<w;bx+=T){ctx.fillRect(x+bx,y,S,h);ctx.fillRect(x+bx,y+T/2,T,S);}
+}
+
+function drawPlatform(x,y,w){
+  px(x,y,w,PLT_H,C.ground);
+  px(x,y,w,S,C.gndTop);
+  px(x,y+PLT_H-S,w,S,C.gndSh);
+  ctx.fillStyle=C.gndSh;
+  for(let bx=0;bx<w;bx+=T) ctx.fillRect(x+bx,y,S,PLT_H);
+}
+
+function drawQBlock(x,y,hit){
+  const col=hit?'#888':C.block;
+  px(x,y,T,T,col);
+  px(x,y,T,S,hit?'#aaa':C.blockHi); px(x,y+T-S,T,S,hit?'#555':C.blockSh);
+  px(x,y,S,T,hit?'#aaa':C.blockHi); px(x+T-S,y,S,T,hit?'#555':C.blockSh);
+  if(!hit){ctx.fillStyle='#fff';ctx.font=`bold ${T/2}px monospace`;ctx.textAlign='center';ctx.fillText('?',x+T/2,y+T-S*4);}
+}
+
+function drawPipe(x,y,tiles){
+  const TW=T+T/2,h=tiles*T;
+  px(x+S,y+T,TW-S*2,h-T,C.pipe); px(x+S,y+T,S,h-T,C.pipeLit); px(x+TW-S*2,y+T,S,h-T,C.pipeDk);
+  px(x,y,TW,T,C.pipe); px(x,y,S,T,C.pipeLit); px(x+TW-S,y,S,T,C.pipeDk); px(x,y,TW,S,C.pipeLit);
+}
+
+function drawCloud(x,y){
+  px(x+4,y+8,24,16,C.cloud); px(x,y+16,32,12,C.cloud); px(x+8,y,16,12,C.cloud); px(x+4,y+4,24,4,C.cloud);
+  px(x,y+24,32,4,C.cloudSh);
+}
+
+function drawBush(x,y){
+  px(x+8,y+8,16,8,C.bush); px(x,y+16,32,8,C.bush); px(x+4,y+8,24,8,C.bush); px(x+12,y,8,8,C.bush);
+  px(x,y+16,8,4,C.bushDk);
+}
+
+function drawWall(x,y,w,h){
+  px(x,y,w,h,C.wall); px(x,y,S,h,C.wallHi); px(x+w-S,y,S,h,C.wallSh); px(x,y,w,S,C.wallHi);
+}
+
+const platforms=[
+  {x:200,  y:GY-128, tiles:4},
+  {x:460,  y:GY-192, tiles:3},
+  {x:680,  y:GY-128, tiles:5},
+  {x:920,  y:GY-160, tiles:3},
+  {x:1100, y:GY-128, tiles:4},
+  {x:1320, y:GY-192, tiles:3},
+  {x:1520, y:GY-128, tiles:5},
+  {x:1780, y:GY-160, tiles:3},
+  {x:1980, y:GY-128, tiles:4},
+  {x:2160, y:GY-192, tiles:3},
+];
+const qblocks=[
+  {x:240, y:GY-192,hit:false},{x:480, y:GY-256,hit:false},{x:720, y:GY-192,hit:false},
+  {x:960, y:GY-224,hit:false},{x:1140,y:GY-160,hit:false},{x:1360,y:GY-256,hit:false},
+  {x:1560,y:GY-192,hit:false},{x:1820,y:GY-224,hit:false},{x:2020,y:GY-160,hit:false},
+  {x:2200,y:GY-256,hit:false},
+];
+const pipes=[{x:350,tiles:2},{x:820,tiles:3},{x:1240,tiles:2},{x:1650,tiles:3},{x:2050,tiles:2}];
+const clouds=[100,350,650,900,1200,1500,1800,2100];
+const bushes=[80,300,560,800,1080,1380,1650,1900,2200];
+
+function overlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax+aw>bx && ax<bx+bw && ay+ah>by && ay<by+bh;
+}
+
+function resolveAABB(ent, rx, ry, rw, rh){
+  if(!overlap(ent.x, ent.y, T, T, rx, ry, rw, rh)) return false;
+  const penTop=(ent.y+T)-ry, penBot=(ry+rh)-ent.y;
+  const penLeft=(ent.x+T)-rx, penRight=(rx+rw)-ent.x;
+  const minV=Math.min(penTop,penBot), minH=Math.min(penLeft,penRight);
+  if(minV<=minH){
+    if(penTop<penBot){ent.y=ry-T;ent.vy=0;ent.onGround=true;}
+    else{ent.y=ry+rh;ent.vy=0;}
+  } else {
+    if(penLeft<penRight){ent.x=rx-T;ent.vx=-Math.abs(ent.vx||0);}
+    else{ent.x=rx+rw;ent.vx=Math.abs(ent.vx||0);}
+  }
+  return true;
+}
+
+function isSpawnClear(x){
+  if(x < WALL+T*2 || x > AW-WALL-T*3) return false;
+  for(const p of pipes) if(x+T > p.x-8 && x < p.x+(T+T/2)+8) return false;
+  return true;
+}
+function getSafeSpawnX(){
+  for(let i=0;i<50;i++){
+    const x=WALL+T*2+Math.random()*(AW-WALL*2-T*4);
+    if(isSpawnClear(x)) return x;
+  }
+  return WALL+T*2;
+}
+
+let kills=0, hp=MAX_HP, wave=1, gameOver=false, camX=0;
+let hasGun=false, enemyGuns=false, canParry=false;
+
+const mario={x:150,y:GY-T,vy:0,vx:0,onGround:true,dir:1,frame:0,frameTimer:0,
+             invincible:0, stompInv:0, shootCooldown:0};
+
+let enemies=[];
+let spawnTimer=60;
+
+let fireballs=[];
+let enemyBullets=[];
+
+function makeGoomba(){
+  let spawnX;
+  for(let attempt=0;attempt<50;attempt++){
+    const candidate=getSafeSpawnX();
+    if(Math.abs(candidate-mario.x)>350){spawnX=candidate;break;}
+  }
+  if(spawnX===undefined) spawnX=getSafeSpawnX();
+  const spd=1.6+(wave-1)*0.15;
+  return{
+    x:spawnX, y:GY-T, vy:0,
+    vx:(Math.random()>0.5?1:-1)*spd,
+    onGround:false, dead:false, deadTimer:0,
+    frame:0, frameTimer:0, stuckTimer:0, lastX:spawnX,
+    shootCooldown: Math.floor(Math.random()*180+120),
+  };
+}
+
+for(let i=0;i<4;i++) enemies.push(makeGoomba());
+
+const coins=[];
+function spawnCoin(x,y){coins.push({x,y,vy:-5,life:45});}
+
+// ── INPUT ──
+const keys={};
+document.addEventListener('keydown',e=>{keys[e.code]=true;e.preventDefault();},{passive:false});
+document.addEventListener('keyup',e=>{keys[e.code]=false;});
+function key(...cc){return cc.some(c=>keys[c]);}
+
+// ── TOUCH INPUT ──
+const touchKeys = { left:false, right:false, jump:false, run:false, shoot:false, parry:false };
+
+function setupTouchBtn(id, k) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const press = (e) => { e.preventDefault(); touchKeys[k] = true; el.classList.add('pressed'); playBGM(); };
+  const release = (e) => { e.preventDefault(); touchKeys[k] = false; el.classList.remove('pressed'); };
+  el.addEventListener('touchstart', press, {passive:false});
+  el.addEventListener('touchend', release, {passive:false});
+  el.addEventListener('touchcancel', release, {passive:false});
+  el.addEventListener('mousedown', press);
+  el.addEventListener('mouseup', release);
+  el.addEventListener('mouseleave', release);
+}
+
+setupTouchBtn('btn-left',  'left');
+setupTouchBtn('btn-right', 'right');
+setupTouchBtn('btn-up',    'jump');
+setupTouchBtn('btn-jump',  'jump');
+setupTouchBtn('btn-run',   'run');
+setupTouchBtn('btn-shoot', 'shoot');
+setupTouchBtn('btn-parry', 'parry');
+
+// Update button lock states visually
+function updateButtonStates() {
+  document.getElementById('btn-shoot').classList.toggle('btn-locked', !hasGun);
+  document.getElementById('btn-parry').classList.toggle('btn-locked', !canParry);
+}
+
+function isLeft()  { return key('ArrowLeft','KeyA')  || touchKeys.left; }
+function isRight() { return key('ArrowRight','KeyD') || touchKeys.right; }
+function isJump()  { return key('ArrowUp','Space','KeyW','KeyZ') || touchKeys.jump; }
+function isRun()   { return key('KeyX') || touchKeys.run || touchKeys.shoot; }
+function isShoot() { return key('KeyX') || touchKeys.shoot; }
+function isParry() { return key('KeyC') || touchKeys.parry; }
+
+let jumpHeld=false, xWasDown=false, cWasDown=false;
+
+function bulletHitsWall(bx,by,bw,bh){
+  if(bx<WALL||bx+bw>AW-WALL) return true;
+  if(by+bh>GY) return true;
+  for(const p of platforms){
+    const pw=p.tiles*T;
+    if(overlap(bx,by,bw,bh,p.x,p.y,pw,PLT_H)) return true;
+  }
+  for(const p of pipes){
+    const pw=T+T/2, py=GY-p.tiles*T;
+    if(overlap(bx,by,bw,bh,p.x,py,pw,p.tiles*T)) return true;
+  }
+  return false;
+}
+
+function update(){
+  if(key('KeyQ')){gameOver=true;return;}
+
+  const prevGun=hasGun, prevEGun=enemyGuns, prevParry=canParry;
+  hasGun    = kills >= KILL_GUN;
+  enemyGuns = kills >= KILL_EGUNS;
+  canParry  = kills >= KILL_PARRY;
+  if(hasGun&&!prevGun)   showUnlock('🔫 HAI LA PISTOLA! Spara con X');
+  if(enemyGuns&&!prevEGun) showUnlock('⚠ I GOOMBA HANNO LE PISTOLE!');
+  if(canParry&&!prevParry) showUnlock('🛡 PUOI PARARE! Premi C al momento giusto');
+  if(isMobile) updateButtonStates();
+
+  const xDown = isShoot();
+  const isRunning = isRun();
+  const baseSpd=isRunning?6.5:3.5;
+  mario.vx = isRight() ? baseSpd : isLeft() ? -baseSpd : 0;
+  if(mario.vx>0) mario.dir=1;
+  if(mario.vx<0) mario.dir=-1;
+  const wj=isJump();
+  if(wj&&!jumpHeld&&mario.onGround){mario.vy=-9.5;mario.onGround=false;
+    sfx(_sfxJump);}
+  jumpHeld=wj;
+
+  if(xDown&&!xWasDown&&hasGun&&mario.shootCooldown<=0){
+    fireballs.push({
+      x:mario.x+(mario.dir>0?T:0), y:mario.y+T/2-4,
+      vx:mario.dir*8, vy:-2, bounces:2
+    });
+    mario.shootCooldown=20;
+  }
+  xWasDown=xDown;
+  if(mario.shootCooldown>0) mario.shootCooldown--;
+
+  const cDown=isParry();
+  if(cDown&&!cWasDown&&canParry){
+    for(let i=enemyBullets.length-1;i>=0;i--){
+      const b=enemyBullets[i];
+      if(overlap(b.x,b.y,18,11,mario.x-16,mario.y-14,T+32,T+24)){
+        let tvx, tvy;
+        if(b.owner && !b.owner.dead){
+          const dx=(b.owner.x+T/2)-b.x;
+          const dy=(b.owner.y+T/2)-b.y;
+          const len=Math.sqrt(dx*dx+dy*dy)||1;
+          tvx=(dx/len)*20; tvy=(dy/len)*20;
+        } else {
+          const bspd=Math.sqrt(b.vx*b.vx+b.vy*b.vy)||1;
+          tvx=-(b.vx/bspd)*20; tvy=-(b.vy/bspd)*20;
+        }
+        fireballs.push({x:b.x,y:b.y,vx:tvx,vy:tvy,bounces:99,parried:true});
+        sfx(_sfxParry);
+        enemyBullets.splice(i,1);
+      }
+    }
+  }
+  cWasDown=cDown;
+
+  mario.vy+=0.4; mario.x+=mario.vx; mario.y+=mario.vy;
+  mario.x=Math.max(WALL,Math.min(AW-WALL-T,mario.x));
+  mario.onGround=false;
+  if(mario.y>=GY-T){mario.y=GY-T;mario.vy=0;mario.onGround=true;}
+  for(const p of platforms) resolveAABB(mario,p.x,p.y,p.tiles*T,PLT_H);
+  for(const b of qblocks){
+    if(overlap(mario.x,mario.y,T,T,b.x,b.y,T,T)){
+      const penTop=(mario.y+T)-b.y, penBot=(b.y+T)-mario.y;
+      const penLeft=(mario.x+T)-b.x, penRight=(b.x+T)-mario.x;
+      const minV=Math.min(penTop,penBot),minH=Math.min(penLeft,penRight);
+      if(minV<=minH){
+        if(penTop<penBot){mario.y=b.y-T;mario.vy=0;mario.onGround=true;}
+        else{mario.y=b.y+T;mario.vy=0;if(!b.hit){b.hit=true;spawnCoin(b.x+T/2,b.y);}}
+      }else{
+        if(penLeft<penRight)mario.x=b.x-T; else mario.x=b.x+T;
+        mario.vx=0;
+      }
+    }
+  }
+  for(const p of pipes){
+    const pw=T+T/2,py=GY-p.tiles*T;
+    if(overlap(mario.x,mario.y,T,T,p.x,py,pw,p.tiles*T)){
+      const penTop=(mario.y+T)-py,penLeft=(mario.x+T)-p.x,penRight=(p.x+pw)-mario.x;
+      if(penTop<Math.min(penLeft,penRight)&&mario.vy>=0){mario.y=py-T;mario.vy=0;mario.onGround=true;}
+      else{if(penLeft<penRight)mario.x=p.x-T;else mario.x=p.x+pw;mario.vx=0;}
+    }
+  }
+
+  mario.frameTimer++;
+  if(mario.vx!==0&&mario.onGround&&mario.frameTimer>(isRunning?3:6)){mario.frame=(mario.frame+1)%4;mario.frameTimer=0;}
+
+  for(let i=fireballs.length-1;i>=0;i--){
+    const fb=fireballs[i];
+    fb.x+=fb.vx; fb.y+=fb.vy;
+    if(fb.parried){
+      if(fb.x<WALL||fb.x+12>AW-WALL||fb.y<0||fb.y>GY+32){
+        fireballs.splice(i,1); continue;
+      }
+    } else {
+      fb.vy+=0.35;
+      if(fb.y+12>GY){
+        fb.y=GY-12; fb.vy=-Math.abs(fb.vy)*0.7; fb.bounces--;
+      }
+      for(const p of platforms){
+        if(overlap(fb.x,fb.y,12,12,p.x,p.y,p.tiles*T,PLT_H)){
+          fb.y=p.y-12; fb.vy=-Math.abs(fb.vy)*0.7; fb.bounces--;
+        }
+      }
+      if(fb.x<0||fb.x>AW||fb.bounces<0||bulletHitsWall(fb.x,fb.y,12,12)){
+        fireballs.splice(i,1); continue;
+      }
+    }
+    let hit=false;
+    for(const e of enemies){
+      if(e.dead) continue;
+      if(overlap(fb.x,fb.y,12,12,e.x,e.y,T,T)){
+        e.dead=true;e.deadTimer=30;kills++;
+        sfx(_sfxStomp);
+        hp=Math.min(MAX_HP,hp+8);
+        spawnTimer=Math.max(20,spawnTimer-20);
+        hit=true; break;
+      }
+    }
+    if(hit){fireballs.splice(i,1);}
+  }
+
+  for(const e of enemies){
+    if(e.dead){e.deadTimer--;continue;}
+    e.vy+=0.4; e.x+=e.vx; e.y+=e.vy;
+    if(e.x<=WALL){e.x=WALL;e.vx=Math.abs(e.vx);}
+    if(e.x>=AW-WALL-T){e.x=AW-WALL-T;e.vx=-Math.abs(e.vx);}
+    e.onGround=false;
+    if(e.y>=GY-T){e.y=GY-T;e.vy=0;e.onGround=true;}
+    for(const p of pipes){
+      const pw=T+T/2,py=GY-p.tiles*T;
+      if(overlap(e.x,e.y,T,T,p.x,py,pw,p.tiles*T)){
+        const penTop=(e.y+T)-py,penLeft=(e.x+T)-p.x,penRight=(p.x+pw)-e.x;
+        if(penTop<Math.min(penLeft,penRight)&&e.vy>=0){e.y=py-T;e.vy=0;e.onGround=true;}
+        else{if(penLeft<penRight){e.x=p.x-T;e.vx=-Math.abs(e.vx);}else{e.x=p.x+pw;e.vx=Math.abs(e.vx);}}
+      }
+    }
+    if(e.onGround&&Math.abs(e.x-e.lastX)<0.3){
+      e.stuckTimer++;
+      if(e.stuckTimer>30){e.vx=-e.vx;e.stuckTimer=0;}
+    }else{e.stuckTimer=0;}
+    e.lastX=e.x;
+    if(e.vx===0){const spd=1.6+(wave-1)*0.15;e.vx=(Math.random()>0.5?1:-1)*spd;}
+    e.frameTimer++;
+    if(e.frameTimer>8){e.frame=(e.frame+1)%2;e.frameTimer=0;}
+
+    if(enemyGuns && e.onGround){
+      e.shootCooldown--;
+      const dist=Math.abs(e.x-mario.x);
+      if(e.shootCooldown<=0 && dist<600){
+        const dx=(mario.x+T/2)-(e.x+T/2);
+        const dy=(mario.y+T/2)-(e.y+T/2);
+        const len=Math.sqrt(dx*dx+dy*dy)||1;
+        const spd=7;
+        const side=dx>0?1:-1;
+        enemyBullets.push({x:e.x+(side>0?T:0),y:e.y+T/2-5,vx:(dx/len)*spd,vy:(dy/len)*spd,owner:e});
+        e.shootCooldown=Math.floor(Math.random()*80+50);
+      }
+    }
+  }
+  for(let i=enemies.length-1;i>=0;i--)
+    if(enemies[i].dead&&enemies[i].deadTimer<=0) enemies.splice(i,1);
+
+  for(let i=enemyBullets.length-1;i>=0;i--){
+    const b=enemyBullets[i];
+    b.x+=b.vx; b.y+=b.vy;
+    if(b.x<0||b.x>AW||b.y<0||b.y>GY||bulletHitsWall(b.x,b.y,10,6)){
+      enemyBullets.splice(i,1); continue;
+    }
+    if(overlap(b.x,b.y,18,11,mario.x+4,mario.y+4,T-8,T-8)){
+      if(mario.invincible===0&&mario.stompInv===0){
+        hp-=25; mario.invincible=100;
+        enemyBullets.splice(i,1);
+        if(hp<=0){hp=0;gameOver=true;return;}
+      }
+    }
+  }
+
+  const alive=enemies.filter(e=>!e.dead).length;
+  if(alive<MAX_ALIVE){spawnTimer--;if(spawnTimer<=0){enemies.push(makeGoomba());spawnTimer=SPAWN_TICKS;}}
+  else spawnTimer=SPAWN_TICKS;
+
+  wave=1+Math.floor(kills/10);
+
+  if(mario.invincible>0) mario.invincible--;
+  if(mario.stompInv>0)   mario.stompInv--;
+
+  let didStomp=false;
+  for(const e of enemies){
+    if(e.dead) continue;
+    if(!overlap(mario.x+2,mario.y,T-4,T,e.x+2,e.y,T-4,T)) continue;
+    if(mario.vy>0&&mario.y+T<e.y+T*0.6){
+      e.dead=true;e.deadTimer=30;kills++;
+      sfx(_sfxStomp);
+      hp=Math.min(MAX_HP,hp+8);
+      spawnTimer=Math.max(20,spawnTimer-30);
+      didStomp=true;
+    }
+  }
+  if(didStomp){mario.vy=-6;mario.stompInv=50;}
+
+  if(!didStomp&&mario.stompInv===0&&mario.invincible===0){
+    for(const e of enemies){
+      if(e.dead) continue;
+      if(!overlap(mario.x+2,mario.y,T-4,T,e.x+2,e.y,T-4,T)) continue;
+      hp-=20; mario.invincible=100;
+      if(hp<=0){hp=0;gameOver=true;return;}
+      break;
+    }
+  }
+
+  for(let i=coins.length-1;i>=0;i--){
+    coins[i].vy+=0.3;coins[i].y+=coins[i].vy;coins[i].life--;
+    if(coins[i].life<=0)coins.splice(i,1);
+  }
+
+  if(unlockTimer>0) unlockTimer--;
+
+  camX=Math.max(0,Math.min(AW-W,mario.x-W/2+T/2));
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,C.sky);g.addColorStop(1,C.skyBot);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+  for(const cx of clouds){const sx=cx-camX*0.5;if(sx>-T*2&&sx<W+T*2)drawCloud(sx,20);}
+  for(const bx of bushes){const sx=bx-camX;if(sx>-T*2&&sx<W+T*2)drawBush(sx,GY-T);}
+
+  drawWall(-camX,0,WALL,H);
+  drawWall(AW-camX-WALL,0,WALL,H);
+
+  for(const p of pipes){const sx=p.x-camX;if(sx>-T*3&&sx<W+T*3)drawPipe(sx,GY-p.tiles*T,p.tiles);}
+  for(const p of platforms){const sx=p.x-camX;if(sx>-T*8&&sx<W+T*8)drawPlatform(sx,p.y,p.tiles*T);}
+  for(const b of qblocks){const sx=b.x-camX;if(sx>-T&&sx<W+T)drawQBlock(sx,b.y,b.hit);}
+
+  for(const c of coins){const sx=c.x-camX;px(sx-4,c.y,8,12,C.coin);px(sx-2,c.y,4,12,C.coinSh);}
+
+  drawGround(-camX,GY,AW,H-GY);
+
+  for(const fb of fireballs){
+    const sx=fb.x-camX;
+    if(sx>-20&&sx<W+20) drawFireball(sx,fb.y);
+  }
+
+  for(const b of enemyBullets){
+    const sx=b.x-camX;
+    if(sx>-20&&sx<W+20) drawEnemyBullet(sx,b.y);
+  }
+
+  for(const e of enemies){
+    const sx=e.x-camX;if(sx<-T||sx>W+T)continue;
+    if(e.dead){px(sx,e.y+T-12,T,12,C.goomba);px(sx,e.y+T-8,T,8,C.goombaDk);}
+    else drawGoomba(sx,e.y,e.frame,enemyGuns);
+  }
+  drawMario(mario.x-camX,mario.y,mario.dir,mario.frame,mario.invincible>0,hasGun,canParry);
+
+  if(unlockTimer>0){
+    const alpha=Math.min(1,unlockTimer/30);
+    ctx.save();
+    ctx.globalAlpha=alpha;
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    ctx.fillRect(W/2-200,H/2-30,400,48);
+    ctx.fillStyle='#ffff00';
+    ctx.font='bold 11px "Press Start 2P",monospace';
+    ctx.textAlign='center';
+    ctx.fillText(unlockMsg,W/2,H/2+4);
+    ctx.restore();
+  }
+}
+
+function drawHUD(){
+  const alive=enemies.filter(e=>!e.dead).length;
+  document.getElementById('h-kills').textContent='☠ '+kills;
+  const pct=Math.max(0,hp/MAX_HP)*100;
+  document.getElementById('hp-val').textContent=hp;
+  document.getElementById('hp-bar-fill').style.width=pct+'%';
+  document.getElementById('hp-bar-fill').style.background=hp>50?'#00e000':hp>25?'#e0e000':'#e00000';
+  let powerTxt;
+  if(!hasGun)        powerTxt=`🔫 ${KILL_GUN-kills}k`;
+  else if(!enemyGuns) powerTxt=`⚠ ${KILL_EGUNS-kills}k`;
+  else if(!canParry)  powerTxt=`🛡 ${KILL_PARRY-kills}k`;
+  else                powerTxt='🛡 MAX';
+  document.getElementById('h-power').textContent=powerTxt;
+  document.getElementById('h-alive').textContent='👾 '+alive+'/'+MAX_ALIVE;
+}
+
+let _gameOverShown = false;
+function drawGameOver(){
+  ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+  ctx.fillStyle='#fc0000';ctx.font='bold 22px "Press Start 2P",monospace';ctx.fillText('GAME OVER',W/2,H/2-40);
+  ctx.fillStyle='#f8d800';ctx.font='13px "Press Start 2P",monospace';ctx.fillText('Goomba eliminati: '+kills,W/2,H/2);
+  ctx.fillStyle='#aaa';ctx.font='9px "Press Start 2P",monospace';ctx.fillText('WAVE raggiunta: '+wave,W/2,H/2+28);
+  if(!isMobile) {
+    ctx.fillStyle='#fff';ctx.fillText('INVIO per rigiocare',W/2,H/2+56);
+  } else {
+    if (!_gameOverShown) {
+      _gameOverShown = true;
+      document.getElementById('touch-controls').style.display = 'none';
+      if (!document.getElementById('restart-touch')) {
+        const rb = document.createElement('button');
+        rb.id = 'restart-touch';
+        rb.textContent = 'RICOMINCIA';
+        rb.style.cssText = 'margin:10px auto;display:block;padding:12px 24px;background:#e04000;color:#fff;font-family:"Press Start 2P",monospace;font-size:11px;border:none;border-radius:6px;cursor:pointer;';
+        rb.addEventListener('touchstart', (e) => { e.preventDefault(); reset(); rb.remove(); _gameOverShown=false; document.getElementById('touch-controls').style.display='block'; });
+        rb.addEventListener('click', () => { reset(); rb.remove(); _gameOverShown=false; document.getElementById('touch-controls').style.display='block'; });
+        document.getElementById('game-wrapper').appendChild(rb);
+      }
+    }
+  }
+}
+
+function reset(){
+  kills=0;hp=MAX_HP;wave=1;gameOver=false;camX=0;
+  hasGun=false;enemyGuns=false;canParry=false;
+  unlockMsg='';unlockTimer=0;
+  Object.assign(mario,{x:150,y:GY-T,vy:0,vx:0,onGround:true,dir:1,frame:0,frameTimer:0,
+                       invincible:0,stompInv:0,shootCooldown:0});
+  enemies.length=0;coins.length=0;fireballs.length=0;enemyBullets.length=0;
+  for(const b of qblocks)b.hit=false;
+  for(let i=0;i<4;i++) enemies.push(makeGoomba());
+  spawnTimer=60;
+  if(isMobile) updateButtonStates();
+}
+
+function loop(){
+  if(!gameOver){update();draw();drawHUD();}
+  else{draw();drawGameOver();if(key('Enter'))reset();}
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
