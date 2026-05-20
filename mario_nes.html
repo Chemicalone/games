@@ -365,6 +365,12 @@ const MAX_ENM = 5;
 let score=0, lives=3, timer=300, timerTick=0;
 let gameOver=false, won=false, gameStarted=false;
 let wonTimer=0, wonRedirected=false;
+let _pointsAwarded=false;
+
+function addPoints(n){
+  const cur=parseInt(localStorage.getItem('campo-points')||'0');
+  localStorage.setItem('campo-points', cur+n);
+}
 
 let camX = 0;
 
@@ -679,7 +685,7 @@ function drawGameOver() {
   ctx.fillRect(0,0,W,H);
 
   if (won) {
-    if (!wonRedirected && wonTimer === 0) wonTimer = 1;
+    if (!wonRedirected && wonTimer === 0){ wonTimer = 1; if(!_pointsAwarded){_pointsAwarded=true;addPoints(Math.floor(score/50)+15);} }
     if (!wonRedirected) wonTimer++;
     const secondsLeft = Math.max(0, Math.ceil((300 - wonTimer) / 60));
 
@@ -706,6 +712,7 @@ function drawGameOver() {
       window.location.href = 'mario_nes_endless.html';
     }
   } else {
+    if(!_pointsAwarded){ _pointsAwarded=true; addPoints(Math.floor(score/50)+2); }
     ctx.fillStyle='#fc0000';
     ctx.font='bold 20px "Press Start 2P", monospace';
     ctx.textAlign='center';
@@ -722,6 +729,7 @@ function drawGameOver() {
 function resetGame() {
   score=0; lives=3; timer=300; timerTick=0;
   gameOver=false; won=false; wonTimer=0; wonRedirected=false;
+  _pointsAwarded=false;
   mario.x=60; mario.y=GND_Y-TILE; mario.vy=0; mario.vx=0;
   mario.onGround=true; mario.invincible=0; mario.frame=0;
   camX=0;

@@ -399,6 +399,12 @@ function getSafeSpawnX(){
 
 let kills=0, hp=MAX_HP, wave=1, gameOver=false, camX=0;
 let hasGun=false, enemyGuns=false, canParry=false;
+let _pointsAwarded=false;
+
+function addPoints(n){
+  const cur=parseInt(localStorage.getItem('campo-points')||'0');
+  localStorage.setItem('campo-points', cur+n);
+}
 
 const mario={x:150,y:GY-T,vy:0,vx:0,onGround:true,dir:1,frame:0,frameTimer:0,
              invincible:0, stompInv:0, shootCooldown:0};
@@ -780,25 +786,39 @@ function drawHUD(){
 
 let _gameOverShown = false;
 function drawGameOver(){
+  if(!_pointsAwarded){ _pointsAwarded=true; addPoints(kills*2 + wave*3); }
   ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,0,W,H);
   ctx.textAlign='center';
   ctx.fillStyle='#fc0000';ctx.font='bold 22px "Press Start 2P",monospace';ctx.fillText('GAME OVER',W/2,H/2-40);
   ctx.fillStyle='#f8d800';ctx.font='13px "Press Start 2P",monospace';ctx.fillText('Goomba eliminati: '+kills,W/2,H/2);
   ctx.fillStyle='#aaa';ctx.font='9px "Press Start 2P",monospace';ctx.fillText('WAVE raggiunta: '+wave,W/2,H/2+28);
+  ctx.fillStyle='#00e000';ctx.font='9px "Press Start 2P",monospace';ctx.fillText('+'+( kills*2+wave*3)+' pts guadagnati',W/2,H/2+50);
   if(!isMobile) {
-    ctx.fillStyle='#fff';ctx.fillText('INVIO per rigiocare',W/2,H/2+56);
+    ctx.fillStyle='#fff';ctx.fillText('INVIO per rigiocare  |  H per hub',W/2,H/2+72);
   } else {
     if (!_gameOverShown) {
       _gameOverShown = true;
       document.getElementById('touch-controls').style.display = 'none';
       if (!document.getElementById('restart-touch')) {
+        const wrap = document.createElement('div');
+        wrap.id = 'restart-touch';
+        wrap.style.cssText = 'display:flex;gap:10px;justify-content:center;margin:10px auto;';
+
         const rb = document.createElement('button');
-        rb.id = 'restart-touch';
         rb.textContent = 'RICOMINCIA';
-        rb.style.cssText = 'margin:10px auto;display:block;padding:12px 24px;background:#e04000;color:#fff;font-family:"Press Start 2P",monospace;font-size:11px;border:none;border-radius:6px;cursor:pointer;';
-        rb.addEventListener('touchstart', (e) => { e.preventDefault(); reset(); rb.remove(); _gameOverShown=false; document.getElementById('touch-controls').style.display='block'; });
-        rb.addEventListener('click', () => { reset(); rb.remove(); _gameOverShown=false; document.getElementById('touch-controls').style.display='block'; });
-        document.getElementById('game-wrapper').appendChild(rb);
+        rb.style.cssText = 'padding:12px 20px;background:#e04000;color:#fff;font-family:"Press Start 2P",monospace;font-size:10px;border:none;border-radius:6px;cursor:pointer;';
+        rb.addEventListener('touchstart', (e) => { e.preventDefault(); reset(); wrap.remove(); _gameOverShown=false; document.getElementById('touch-controls').style.display='block'; });
+        rb.addEventListener('click', () => { reset(); wrap.remove(); _gameOverShown=false; document.getElementById('touch-controls').style.display='block'; });
+
+        const hb = document.createElement('button');
+        hb.textContent = '← HUB';
+        hb.style.cssText = 'padding:12px 20px;background:#0055aa;color:#fff;font-family:"Press Start 2P",monospace;font-size:10px;border:none;border-radius:6px;cursor:pointer;';
+        hb.addEventListener('touchstart', (e) => { e.preventDefault(); window.location.href='index.html'; });
+        hb.addEventListener('click', () => { window.location.href='index.html'; });
+
+        wrap.appendChild(rb);
+        wrap.appendChild(hb);
+        document.getElementById('game-wrapper').appendChild(wrap);
       }
     }
   }
@@ -819,7 +839,7 @@ function reset(){
 
 function loop(){
   if(!gameOver){update();draw();drawHUD();}
-  else{draw();drawGameOver();if(key('Enter'))reset();}
+  else{draw();drawGameOver();if(key('Enter'))reset();if(key('KeyH'))window.location.href='index.html';}
   requestAnimationFrame(loop);
 }
 loop();
