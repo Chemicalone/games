@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boss Raid ⚔️</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Crimson Text', Georgia, serif;
+    background: #1a0f2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    color: #f0e6c8;
+  }
+
+  .title {
+    font-family: 'Cinzel', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: #c4a882;
+    text-align: center;
+    margin-bottom: 20px;
+    font-style: italic;
+  }
+
+  .boss-card {
+    background: #2d1b4e;
+    border: 2px solid #6b4c9a;
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .boss-sprite {
+    font-size: 80px;
+    line-height: 1;
+    margin-bottom: 8px;
+    display: block;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .boss-name {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    color: #e8b4ff;
+    margin-bottom: 12px;
+  }
+
+  .hp-bar-container {
+    background: #1a0a2e;
+    border: 1px solid #6b4c9a;
+    border-radius: 999px;
+    height: 22px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .hp-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s ease;
+  }
+
+  .hp-bar.hp-high { background: linear-gradient(90deg, #44bb44, #77dd77); }
+  .hp-bar.hp-mid  { background: linear-gradient(90deg, #ddaa00, #ffcc44); }
+  .hp-bar.hp-low  { background: linear-gradient(90deg, #e84444, #ff6b6b); }
+
+  .hp-text { font-size: 14px; color: #c4a882; margin-bottom: 16px; }
+  .hp-number { font-weight: 600; color: #ffd700; font-size: 16px; }
+
+  .players-online { font-size: 13px; color: #a882c4; margin-bottom: 4px; }
+  .timer-text { font-size: 13px; color: #c4a882; font-style: italic; }
+
+  .hit-flash {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: rgba(255, 100, 100, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+
+  .key-prompt {
+    background: #2d1b4e;
+    border: 2px solid #6b4c9a;
+    border-radius: 16px;
+    padding: 18px 20px;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .prompt-label { font-size: 15px; color: #c4a882; margin-bottom: 12px; font-style: italic; }
+
+  .key-display {
+    font-family: 'Cinzel', serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 6px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 8px;
+  }
+
+  .key-name { font-size: 16px; color: #e8b4ff; font-style: italic; }
+
+  .arrow-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    max-width: 200px;
+    margin: 18px auto 0;
+  }
+
+  .arrow-btn {
+    background: #3d2660;
+    border: 2px solid #6b4c9a;
+    border-radius: 10px;
+    color: #f0e6c8;
+    font-size: 22px;
+    width: 56px;
+    height: 56px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s, transform 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .arrow-btn:active { background: #6b4c9a; transform: scale(0.92); }
+  .arrow-btn.correct-flash { background: #2a7a2a; border-color: #44cc44; }
+  .arrow-btn.wrong-flash   { background: #7a2a2a; border-color: #cc4444; }
+  .arrow-btn.empty { visibility: hidden; }
+
+  .combo-bar { width: 100%; max-width: 480px; text-align: center; margin-bottom: 12px; min-height: 34px; }
+  .combo-text { font-family: 'Cinzel', serif; font-size: 22px; color: #ffd700; }
+
+  .feed {
+    background: #1a0f2e;
+    border: 1px solid #3d2660;
+    border-radius: 10px;
+    padding: 10px 14px;
+    width: 100%;
+    max-width: 480px;
+    font-size: 13px;
+    color: #a882c4;
+    max-height: 100px;
+    overflow-y: auto;
+    font-style: italic;
+    margin-bottom: 12px;
+  }
+
+  .feed-item { padding: 2px 0; }
+  .feed-dmg  { color: #ff9944; }
+  .feed-kill { color: #ffd700; font-weight: 600; font-style: normal; font-family: 'Cinzel', serif; }
+
+  .music-btn {
+    background: #3d2660;
+    border: 2px solid #6b4c9a;
+    border-radius: 10px;
+    color: #f0e6c8;
+    font-size: 14px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-family: 'Crimson Text', serif;
+    margin-bottom: 16px;
+    transition: background 0.15s;
+  }
+  .music-btn:hover { background: #6b4c9a; }
+
+  /* ── LEADERBOARD ── */
+  .leaderboard {
+    background: #2d1b4e;
+    border: 2px solid #6b4c9a;
+    border-radius: 16px;
+    padding: 16px 20px;
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 16px;
+  }
+
+  .lb-title {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: #ffd700;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid #3d2660;
+    font-size: 14px;
+  }
+  .lb-row:last-child { border-bottom: none; }
+
+  .lb-rank {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    min-width: 28px;
+    text-align: center;
+    color: #c4a882;
+  }
+  .lb-rank.gold   { color: #ffd700; }
+  .lb-rank.silver { color: #c0c0c0; }
+  .lb-rank.bronze { color: #cd7f32; }
+
+  .lb-name {
+    flex: 1;
+    color: #f0e6c8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lb-name.me { color: #e8b4ff; font-weight: 600; }
+
+  .lb-dmg {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: #ff9944;
+    min-width: 70px;
+    text-align: right;
+  }
+
+  .lb-bar-wrap {
+    width: 80px;
+    height: 6px;
+    background: #1a0a2e;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .lb-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6b4c9a, #e8b4ff);
+    transition: width 0.4s ease;
+  }
+
+  .lb-empty { font-size: 13px; color: #a882c4; font-style: italic; text-align: center; padding: 8px 0; }
+
+  /* ── NICKNAME OVERLAY ── */
+  .nick-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 5, 20, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .nick-overlay.visible { display: flex; }
+
+  .nick-card {
+    background: #2d1b4e;
+    border: 2px solid #6b4c9a;
+    border-radius: 20px;
+    padding: 32px 28px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .nick-dragon { font-size: 60px; margin-bottom: 12px; display: block; }
+
+  .nick-title {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    color: #ffd700;
+    margin-bottom: 8px;
+  }
+
+  .nick-sub { font-size: 15px; color: #c4a882; font-style: italic; margin-bottom: 24px; }
+
+  .nick-input {
+    width: 100%;
+    background: #1a0a2e;
+    border: 2px solid #6b4c9a;
+    border-radius: 10px;
+    color: #f0e6c8;
+    font-size: 18px;
+    font-family: 'Cinzel', serif;
+    padding: 10px 14px;
+    text-align: center;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .nick-input:focus { border-color: #e8b4ff; }
+  .nick-input::placeholder { color: #6b4c9a; font-family: 'Crimson Text', serif; font-style: italic; }
+
+  .nick-btn {
+    background: #6b4c9a;
+    border: none;
+    border-radius: 10px;
+    color: #ffd700;
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    padding: 12px 32px;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  .nick-btn:hover { background: #8a6abc; }
+  .nick-error { color: #ff6b6b; font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+  /* ── DEAD OVERLAY ── */
+  .dead-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 100;
+    text-align: center;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .dead-overlay.visible { display: flex; }
+
+  .dead-title { font-family: 'Cinzel', serif; font-size: 36px; color: #ffd700; margin-bottom: 12px; }
+  .dead-sub { font-size: 18px; color: #c4a882; margin-bottom: 8px; font-style: italic; }
+  .respawn-timer { font-family: 'Cinzel', serif; font-size: 28px; color: #e8b4ff; margin-top: 16px; }
+
+  /* final leaderboard in dead overlay */
+  .final-lb {
+    background: #2d1b4e;
+    border: 2px solid #6b4c9a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    width: 100%;
+    max-width: 360px;
+    margin: 20px 0 8px;
+  }
+  .final-lb-title { font-family: 'Cinzel', serif; font-size: 15px; color: #ffd700; margin-bottom: 10px; text-align: center; }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #44cc44;
+    margin-right: 5px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-dot.offline { background: #cc4444; animation: none; }
+
+  /* ── STUN OVERLAY ── */
+  .stun-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(180, 0, 0, 0.55);
+    z-index: 150;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    pointer-events: all;
+    animation: stunFlicker 0.4s ease-in-out;
+  }
+  .stun-overlay.visible { display: flex; }
+  @keyframes stunFlicker {
+    0%   { opacity: 0; }
+    30%  { opacity: 1; }
+    60%  { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+  .stun-title {
+    font-family: 'Cinzel', serif;
+    font-size: 32px;
+    color: #fff;
+    text-shadow: 0 0 20px #ff0000, 0 2px 4px #000;
+    margin-bottom: 10px;
+  }
+  .stun-sub {
+    font-size: 16px;
+    color: #ffcccc;
+    font-style: italic;
+    margin-bottom: 18px;
+  }
+  .stun-timer {
+    font-family: 'Cinzel', serif;
+    font-size: 64px;
+    color: #fff;
+    text-shadow: 0 0 30px #ff4444;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stun-hint {
+    font-size: 13px;
+    color: #ffaaaa;
+    margin-top: 14px;
+    font-style: italic;
+  }
+
+  /* Boss enrage — sotto 25% HP */
+  .boss-card.enraged {
+    border-color: #ff4444 !important;
+    animation: enrageGlow 1.2s ease-in-out infinite;
+  }
+  @keyframes enrageGlow {
+    0%,100% { box-shadow: 0 0 20px #ff000066; }
+    50%     { box-shadow: 0 0 50px #ff0000cc; }
+  }
+  .boss-card.enraged .boss-sprite {
+    animation: float 3s ease-in-out infinite, enrageFilter 1s ease-in-out infinite;
+  }
+  @keyframes enrageFilter {
+    0%,100% { filter: none; }
+    50%     { filter: drop-shadow(0 0 10px #ff4444) hue-rotate(10deg); }
+  }
+  .enrage-warning {
+    display: none;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    color: #ff6666;
+    text-align: center;
+    width: 100%;
+    max-width: 480px;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+    animation: warningBlink 0.9s ease-in-out infinite;
+  }
+  .enrage-warning.visible { display: block; }
+  @keyframes warningBlink {
+    0%,100% { opacity: 1; }
+    50%     { opacity: 0.2; }
+  }
+</style>
+</head>
+<body>
+
+<!-- STUN OVERLAY -->
+<div class="stun-overlay" id="stunOverlay">
+  <div class="stun-title">🐉 Colpito dal Boss!</div>
+  <div class="stun-sub">Drakarion ti ha tramortito — sei stordito!</div>
+  <div class="stun-timer" id="stunCountdown">10</div>
+  <div class="stun-hint">Attendi per poter attaccare di nuovo...</div>
+</div>
+
+<!-- ENRAGE WARNING -->
+<div class="enrage-warning" id="enrageWarning">⚠️ DRAKARION È IN FURIA — ATTENTO AI CONTRATTACCHI! ⚠️</div>
+
+<!-- NICKNAME OVERLAY -->
+<div class="nick-overlay" id="nickOverlay">
+  <div class="nick-card">
+    <span class="nick-dragon">🐉</span>
+    <div class="nick-title">Boss Raid</div>
+    <div class="nick-sub">Scegli il tuo nome da avventuriero!</div>
+    <input class="nick-input" id="nickInput" maxlength="20" placeholder="es. Arthas, Gandalf..." />
+    <button class="nick-btn" id="nickBtn">Entra nell'arena ⚔️</button>
+    <div class="nick-error" id="nickError"></div>
+  </div>
+</div>
+
+<div class="title">⚔️ Boss Raid</div>
+<div class="subtitle">Unisciti agli avventurieri e sconfiggi il boss!</div>
+
+<div class="boss-card" id="bossCard">
+  <div class="hit-flash" id="hitFlash"></div>
+  <span class="boss-sprite">🐉</span>
+  <div class="boss-name">Drakarion il Devastatore</div>
+  <div class="hp-bar-container">
+    <div class="hp-bar hp-high" id="hpBar" style="width:100%"></div>
+  </div>
+  <div class="hp-text">
+    <span class="hp-number" id="hpNow">1,000,000</span> / <span id="hpMax">1,000,000</span> HP
+  </div>
+  <div class="players-online"><span class="status-dot" id="statusDot"></span><span id="onlineText">Connessione...</span></div>
+</div>
+
+<div class="combo-bar">
+  <div class="combo-text" id="comboText"></div>
+</div>
+
+<div class="key-prompt">
+  <div class="prompt-label">Premi il tasto giusto per attaccare!</div>
+  <div class="key-display" id="keyDisplay">?</div>
+  <div class="key-name" id="keyName">In attesa...</div>
+  <div class="arrow-buttons">
+    <div class="arrow-btn empty"></div>
+    <button class="arrow-btn" id="btnUp"    data-dir="up">▲</button>
+    <div class="arrow-btn empty"></div>
+    <button class="arrow-btn" id="btnLeft"  data-dir="left">◀</button>
+    <button class="arrow-btn" id="btnDown"  data-dir="down">▼</button>
+    <button class="arrow-btn" id="btnRight" data-dir="right">▶</button>
+  </div>
+</div>
+
+<div style="display:flex;gap:10px;width:100%;max-width:480px;margin-bottom:16px;">
+  <button class="music-btn" id="musicBtn" style="margin-bottom:0;flex:1;">🔇 Avvia Musica</button>
+  <button class="music-btn" onclick="window.location.href='index.html'" style="margin-bottom:0;opacity:.7;">🏠 Hub</button>
+</div>
+
+<div class="feed" id="feed">
+  <div class="feed-item">⏳ Connessione al server...</div>
+</div>
+
+<!-- LIVE LEADERBOARD -->
+<div class="leaderboard">
+  <div class="lb-title">🏆 Classifica Danni</div>
+  <div id="lbList"><div class="lb-empty">Nessun eroe ancora...</div></div>
+</div>
+
+<!-- DEAD OVERLAY -->
+<div class="dead-overlay" id="deadOverlay">
+  <div class="dead-title">🏆 Boss Sconfitto!</div>
+  <div class="dead-sub">Gli avventurieri hanno trionfato!</div>
+  <div class="final-lb">
+    <div class="final-lb-title">⚔️ Classifica Finale</div>
+    <div id="finalLbList"></div>
+  </div>
+  <div class="dead-sub">Il boss rinascerà tra:</div>
+  <div class="respawn-timer" id="respawnCountdown">10:00:00</div>
+  <div class="dead-sub" style="margin-top:16px; font-size:14px;">Aggiorna la pagina quando rinasce 🐉</div>
+</div>
+
+<!-- AUDIO -->
+<audio id="sfxHit"  src="freesound_damage.mp3" preload="auto"></audio>
+<audio id="sfxMiss" src="undertale_miss.mp3"   preload="auto"></audio>
+<audio id="sfxDead" src="lumora_gameover.mp3"  preload="auto"></audio>
+<audio id="bgMusic" src="bossmusic.mp3"         preload="auto" loop></audio>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import { getDatabase, ref, onValue, runTransaction, get, set } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmwUiCNE_dFMIS-r2H02Uh6p6PWueE_z4",
+    authDomain: "bosshp-a73e8.firebaseapp.com",
+    databaseURL: "https://bosshp-a73e8-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "bosshp-a73e8",
+    storageBucket: "bosshp-a73e8.firebasestorage.app",
+    messagingSenderId: "124438643478",
+    appId: "1:124438643478:web:18cccc0391146d15d40637"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  document.getElementById('nickOverlay').classList.add('visible');
+
+  const MAX_HP      = 1000000;
+  const RESPAWN_MS  = 10 * 60 * 60 * 1000;
+  const DAMAGE_BASE = 120;
+  const DAMAGE_VAR  = 80;
+
+  const DIRECTIONS = [
+    { key: 'up',    arrow: '▲', name: 'Su' },
+    { key: 'down',  arrow: '▼', name: 'Giù' },
+    { key: 'left',  arrow: '◀', name: 'Sinistra' },
+    { key: 'right', arrow: '▶', name: 'Destra' },
+  ];
+  const COMBOS = ['Colpo Critico! ⚡', 'Stoccata Fatale! 🗡️', 'Magia Arcana! ✨', 'Attacco Divino! 🌟', 'Devastante! 💥'];
+
+  // Audio
+  const sfxHit  = document.getElementById('sfxHit');
+  const sfxMiss = document.getElementById('sfxMiss');
+  const sfxDead = document.getElementById('sfxDead');
+  const bgMusic = document.getElementById('bgMusic');
+  bgMusic.volume = 0.4; sfxHit.volume = 0.7; sfxMiss.volume = 0.7; sfxDead.volume = 0.8;
+
+  let musicPlaying = false;
+  document.getElementById('musicBtn').addEventListener('click', () => {
+    if (!musicPlaying) { bgMusic.play(); musicPlaying = true; document.getElementById('musicBtn').textContent = '🔊 Musica ON'; }
+    else { bgMusic.pause(); musicPlaying = false; document.getElementById('musicBtn').textContent = '🔇 Musica OFF'; }
+  });
+  function playSound(a) { a.currentTime = 0; a.play().catch(()=>{}); }
+
+  // State
+  let playerNick = null;
+  let currentDir = null;
+  let canHit     = true;
+  let currentHp  = MAX_HP;
+  let isDead     = false;
+  let combo      = 0;
+  let bossDeadSoundPlayed = false;
+  let isStunned  = false;  // stordito dal boss
+  let stunTimer  = null;   // riferimento al setInterval dello stun
+
+  const STUN_DURATION = 10; // secondi
+
+  // ── STUN ──
+  function applyStun() {
+    if (isStunned) return; // già stordito, non sovrapporre
+    isStunned = true;
+    canHit    = false;
+    let remaining = STUN_DURATION;
+    document.getElementById('stunCountdown').textContent = remaining;
+    document.getElementById('stunOverlay').classList.add('visible');
+    addFeed(`💥 Drakarion contrattacca! ${playerNick} è stordito per ${STUN_DURATION} secondi!`, 'dmg');
+
+    stunTimer = setInterval(() => {
+      remaining--;
+      document.getElementById('stunCountdown').textContent = remaining;
+      if (remaining <= 0) {
+        clearInterval(stunTimer);
+        stunTimer  = null;
+        isStunned  = false;
+        document.getElementById('stunOverlay').classList.remove('visible');
+        addFeed(`✅ ${playerNick} si rialza — pronto a combattere!`);
+        pickDirection();
+      }
+    }, 1000);
+  }
+
+  // ── ENRAGE: aggiorna visuale boss in base agli HP ──
+  function updateEnrageState(hp) {
+    const bossCard = document.getElementById('bossCard');
+    const warning  = document.getElementById('enrageWarning');
+    if (hp > 0 && hp <= MAX_HP / 4) {
+      bossCard.classList.add('enraged');
+      warning.classList.add('visible');
+    } else {
+      bossCard.classList.remove('enraged');
+      warning.classList.remove('visible');
+    }
+  }
+
+  const bossRef = ref(db, 'boss');
+  const lbRef   = ref(db, 'leaderboard');
+
+  // ── NICKNAME ──
+  function sanitizeNick(n) { return n.trim().replace(/[.#$[\]]/g, ''); }
+
+  document.getElementById('nickBtn').addEventListener('click', confirmNick);
+  document.getElementById('nickInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmNick(); });
+
+  function confirmNick() {
+    const raw = document.getElementById('nickInput').value;
+    const nick = sanitizeNick(raw);
+    if (!nick || nick.length < 2) {
+      document.getElementById('nickError').textContent = 'Inserisci almeno 2 caratteri!';
+      return;
+    }
+    playerNick = nick;
+    document.getElementById('nickOverlay').classList.remove('visible');
+    initBoss().then(() => pickDirection());
+  }
+
+  // ── LEADERBOARD ──
+  function renderLb(data, containerId) {
+    const container = document.getElementById(containerId);
+    if (!data) { container.innerHTML = '<div class="lb-empty">Nessun eroe ancora...</div>'; return; }
+    const entries = Object.entries(data).sort((a,b) => b[1] - a[1]);
+    const max = entries[0]?.[1] || 1;
+    const medals = ['🥇','🥈','🥉'];
+    const rankClass = ['gold','silver','bronze'];
+    container.innerHTML = entries.map(([name, dmg], i) => {
+      const pct = Math.round((dmg / max) * 100);
+      const isMe = name === playerNick;
+      const rank = i < 3 ? `<span class="lb-rank ${rankClass[i]}">${medals[i]}</span>`
+                         : `<span class="lb-rank">#${i+1}</span>`;
+      return `<div class="lb-row">
+        ${rank}
+        <span class="lb-name${isMe?' me':''}">
+          ${isMe ? '⚔️ ' : ''}${name}
+        </span>
+        <div class="lb-bar-wrap"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+        <span class="lb-dmg">${dmg.toLocaleString()}</span>
+      </div>`;
+    }).join('');
+  }
+
+  onValue(lbRef, snap => {
+    const data = snap.val();
+    renderLb(data, 'lbList');
+    renderLb(data, 'finalLbList');
+  });
+
+  async function addDamageToLb(dmg) {
+    if (!playerNick) return;
+    const playerRef = ref(db, `leaderboard/${playerNick}`);
+    await runTransaction(playerRef, current => (current || 0) + dmg);
+  }
+
+  async function resetLeaderboard() {
+    await set(lbRef, null);
+  }
+
+  // ── BOSS ──
+  function pickDirection() {
+    const d = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+    currentDir = d.key;
+    document.getElementById('keyDisplay').textContent = d.arrow;
+    document.getElementById('keyName').textContent    = `Premi: ${d.name}`;
+    canHit = true;
+  }
+
+  function updateHpBar(hp) {
+    const pct = Math.max(0, Math.min(100, (hp / MAX_HP) * 100));
+    const bar = document.getElementById('hpBar');
+    bar.style.width = pct + '%';
+    bar.className = 'hp-bar ' + (pct > 50 ? 'hp-high' : pct > 25 ? 'hp-mid' : 'hp-low');
+    document.getElementById('hpNow').textContent = Math.max(0, hp).toLocaleString();
+    document.getElementById('hpMax').textContent = MAX_HP.toLocaleString();
+  }
+
+  function flashBoss() {
+    const f = document.getElementById('hitFlash');
+    f.style.opacity = '1';
+    setTimeout(() => f.style.opacity = '0', 200);
+  }
+
+  function addFeed(msg, type) {
+    const feed = document.getElementById('feed');
+    const el = document.createElement('div');
+    el.className = 'feed-item' + (type ? ' feed-' + type : '');
+    el.textContent = msg;
+    feed.prepend(el);
+    while (feed.children.length > 20) feed.removeChild(feed.lastChild);
+  }
+
+  function showCombo() {
+    const ct = document.getElementById('comboText');
+    ct.textContent = combo >= 3 ? COMBOS[Math.floor(Math.random() * COMBOS.length)] : '';
+    setTimeout(() => ct.textContent = '', 1200);
+  }
+
+  function checkDeadOverlay(hp, deadSince) {
+    if (hp <= 0 && deadSince) {
+      const elapsed = Date.now() - deadSince;
+      // Se il boss è morto ma NON è ancora passato il tempo di respawn → redirect al pugnale
+      if (elapsed < RESPAWN_MS) {
+        window.location.href = 'dagger_luce.html';
+        return;
+      }
+      if (!isDead) {
+        isDead = true;
+        if (!bossDeadSoundPlayed) {
+          bgMusic.pause(); musicPlaying = false;
+          document.getElementById('musicBtn').textContent = '🔇 Musica OFF';
+          playSound(sfxDead);
+          bossDeadSoundPlayed = true;
+        }
+      }
+      document.getElementById('deadOverlay').classList.add('visible');
+      updateRespawnTimer(deadSince);
+    } else {
+      isDead = false;
+      bossDeadSoundPlayed = false;
+      document.getElementById('deadOverlay').classList.remove('visible');
+    }
+  }
+
+  function updateRespawnTimer(deadSince) {
+    function tick() {
+      const remaining = Math.max(0, RESPAWN_MS - (Date.now() - deadSince));
+      if (remaining === 0) { document.getElementById('respawnCountdown').textContent = 'Rinascita imminente...'; return; }
+      const h = Math.floor(remaining / 3600000);
+      const m = Math.floor((remaining % 3600000) / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      document.getElementById('respawnCountdown').textContent =
+        `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      if (isDead) setTimeout(tick, 1000);
+    }
+    tick();
+  }
+
+  async function initBoss() {
+    const snap = await get(bossRef);
+    const now  = Date.now();
+    if (!snap.exists()) {
+      await runTransaction(bossRef, () => ({ hp: MAX_HP, deadSince: null }));
+    } else {
+      const data = snap.val();
+      if (data.hp <= 0 && data.deadSince && (now - data.deadSince) >= RESPAWN_MS) {
+        await resetLeaderboard();
+        await runTransaction(bossRef, () => ({ hp: MAX_HP, deadSince: null }));
+      }
+    }
+  }
+
+  onValue(bossRef, snap => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    currentHp = data.hp ?? MAX_HP;
+    const deadSince = data.deadSince ?? null;
+    updateHpBar(currentHp);
+    updateEnrageState(currentHp);
+    checkDeadOverlay(currentHp, deadSince);
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('onlineText').textContent = 'Live — Boss connesso';
+    if (!isDead && !currentDir && playerNick) pickDirection();
+  }, () => {
+    document.getElementById('statusDot').className = 'status-dot offline';
+    document.getElementById('onlineText').textContent = 'Disconnesso';
+  });
+
+  async function doHit(dir) {
+    if (!canHit || isDead || !playerNick) return;
+    const btn = document.querySelector(`[data-dir="${dir}"]`);
+
+    if (dir === currentDir) {
+      canHit = false;
+      combo++;
+      const dmg = Math.floor(DAMAGE_BASE + Math.random() * DAMAGE_VAR + (combo >= 3 ? 50 : 0));
+
+      btn.classList.add('correct-flash');
+      setTimeout(() => btn.classList.remove('correct-flash'), 300);
+      flashBoss();
+      playSound(sfxHit);
+      showCombo();
+
+      try {
+        await runTransaction(bossRef, data => {
+          if (!data) data = { hp: MAX_HP, deadSince: null };
+          if (data.hp <= 0) return;
+          data.hp = Math.max(0, data.hp - dmg);
+          if (data.hp === 0) data.deadSince = Date.now();
+          return data;
+        });
+        await addDamageToLb(dmg);
+        // ── PUNTI: ogni 100 danni = 1 punto hub ──
+        const pts = Math.floor(dmg / 100);
+        if(pts > 0){
+          const cur = parseInt(localStorage.getItem('campo-points')||'0');
+          localStorage.setItem('campo-points', cur + pts);
+        }
+        addFeed(`⚔️ ${playerNick} colpisce per ${dmg} danni! (+${pts} pts)`, 'dmg');
+        if (currentHp - dmg <= 0) {
+          addFeed('☠️ Il boss è stato sconfitto! La Scheggia dell\'Alba è tua!', 'kill');
+          setTimeout(() => { window.location.href = 'dagger_luce.html'; }, 3000);
+        }
+      } catch(e) {
+        console.error('Transazione fallita', e);
+      } finally {
+        setTimeout(() => pickDirection(), 400);
+      }
+    } else {
+      combo = 0;
+      document.getElementById('comboText').textContent = '❌ Mancato!';
+      setTimeout(() => document.getElementById('comboText').textContent = '', 800);
+      btn.classList.add('wrong-flash');
+      setTimeout(() => btn.classList.remove('wrong-flash'), 300);
+      playSound(sfxMiss);
+
+      // Se sotto 25% HP il boss contrattacca e stordisce
+      if (currentHp > 0 && currentHp <= MAX_HP / 4) {
+        setTimeout(() => applyStun(), 400);
+      }
+    }
+  }
+
+  document.querySelectorAll('.arrow-btn[data-dir]').forEach(btn => {
+    btn.addEventListener('click', () => doHit(btn.dataset.dir));
+  });
+
+  document.addEventListener('keydown', e => {
+    const map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
+    if (map[e.key]) { e.preventDefault(); doHit(map[e.key]); }
+  });
+</script>
+</body>
+</html>

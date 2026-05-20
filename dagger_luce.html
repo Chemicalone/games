@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scheggia dell'Alba</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Upright:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Trajan+Pro:wght@400;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 30%, #fff8e8 0%, #f0e4c8 40%, #d4c4a0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: 'Cormorant Upright', serif;
+  }
+
+  /* Floating light motes */
+  .motes {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .mote {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    opacity: 0;
+    animation: floatMote linear infinite;
+  }
+  @keyframes floatMote {
+    0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+    15%  { opacity: 0.7; }
+    85%  { opacity: 0.4; }
+    100% { transform: translateY(-10vh) translateX(var(--dx)) scale(1.5); opacity: 0; }
+  }
+
+  .card-wrapper {
+    position: relative;
+    z-index: 10;
+  }
+
+  .card {
+    width: 360px;
+    background: linear-gradient(165deg, #fffdf5 0%, #fef8e8 50%, #fdf3d8 100%);
+    border: 1px solid #c8a84a;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 3px #f5e8c0,
+      0 0 0 4px #c8a84a,
+      0 0 40px #ffd98055,
+      0 0 80px #ffcc4422,
+      inset 0 0 80px #fffff888;
+    animation: shimmer 5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { box-shadow: 0 0 0 3px #f5e8c0, 0 0 0 4px #c8a84a, 0 0 40px #ffd98055, 0 0 80px #ffcc4422, inset 0 0 80px #fffff888; }
+    50%       { box-shadow: 0 0 0 3px #fdf0d0, 0 0 0 4px #e8c060, 0 0 60px #ffe89088, 0 0 120px #ffdd6633, inset 0 0 80px #fffff8cc; }
+  }
+
+  /* Top ornament bar */
+  .top-bar {
+    height: 6px;
+    background: linear-gradient(90deg, transparent, #c8a84a, #ffe080, #f0cc60, #c8a84a, transparent);
+  }
+
+  /* Sun ray overlay */
+  .sun-rays {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .sun-rays svg { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); opacity: 0.04; }
+
+  .card-inner { position: relative; z-index: 1; }
+
+  /* Type banner */
+  .type-banner {
+    text-align: center;
+    padding: 8px 20px 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: #9a7830;
+    border-bottom: 1px solid #e8d498;
+  }
+
+  /* Title */
+  .title-zone {
+    padding: 16px 30px 10px;
+    text-align: center;
+    position: relative;
+  }
+  .title-zone::before, .title-zone::after {
+    content: '✦';
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    color: #c8a848;
+    font-size: 13px;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  .title-zone::before { left: 16px; animation-delay: 0s; }
+  .title-zone::after  { right: 16px; animation-delay: 1.5s; }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.5; transform: translateY(-50%) scale(1); }
+    50% { opacity: 1; transform: translateY(-50%) scale(1.3); }
+  }
+
+  .title {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #7a5010;
+    line-height: 1.2;
+    text-shadow: 0 0 30px #ffcc6666, 0 1px 0 #fff8e0;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: #b89040;
+    margin-top: 5px;
+    letter-spacing: 3px;
+    font-style: italic;
+  }
+
+  /* Image zone */
+  .image-zone {
+    margin: 10px 20px;
+    height: 210px;
+    border: 1px solid #ddc870;
+    background: linear-gradient(180deg, #fffae0 0%, #fff5c8 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Radiant halo behind dagger */
+  .halo {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffee9988 0%, #ffcc4444 40%, transparent 70%);
+    animation: haloBreath 4s ease-in-out infinite;
+  }
+  @keyframes haloBreath {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    50%       { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  }
+
+  /* Rotating sun rays behind dagger */
+  .ray-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px; height: 160px;
+    animation: spinRays 20s linear infinite;
+    opacity: 0.15;
+  }
+  @keyframes spinRays { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+  .dagger-svg {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-20deg);
+    filter: drop-shadow(0 0 14px #ffcc44) drop-shadow(0 0 6px #ffffff88);
+    animation: floatDagger 4s ease-in-out infinite;
+    z-index: 2;
+  }
+  @keyframes floatDagger {
+    0%, 100% { transform: translate(-50%, -50%) rotate(-20deg) translateY(0); }
+    50%       { transform: translate(-50%, -50%) rotate(-20deg) translateY(-8px); }
+  }
+
+  /* Sparkle particles */
+  .sparkle {
+    position: absolute;
+    width: 4px; height: 4px;
+    background: white;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: sparklePop ease-in-out infinite;
+  }
+  @keyframes sparklePop {
+    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+    50%       { opacity: 1; transform: scale(1) rotate(180deg); }
+  }
+
+  /* Ornament divider */
+  .divider {
+    text-align: center;
+    padding: 6px 20px;
+    font-size: 13px;
+    color: #c8a848;
+    letter-spacing: 10px;
+    border-top: 1px solid #e8d498;
+    border-bottom: 1px solid #e8d498;
+    margin: 0 20px;
+  }
+
+  /* Stats */
+  .stats-block {
+    padding: 12px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-row {
+    background: linear-gradient(135deg, #fffbef, #fff8e0);
+    border: 1px solid #e0c870;
+    border-top: 2px solid #c8a840;
+    padding: 8px 10px;
+    border-radius: 2px;
+  }
+  .stat-row.full { grid-column: 1 / -1; }
+  .stat-label {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #9a7828;
+    text-transform: uppercase;
+  }
+  .stat-value {
+    font-size: 14px;
+    color: #5a3a08;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  .stat-value strong { color: #c07010; font-style: normal; }
+
+  /* Abilities */
+  .abilities { padding: 0 20px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .ability {
+    background: linear-gradient(135deg, #fffbef, #fef7d8);
+    border: 1px solid #ddc870;
+    border-left: 3px solid #d4a030;
+    padding: 10px 12px;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ability::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 100%;
+    background: linear-gradient(to left, #ffee8811, transparent);
+  }
+
+  .ability-name {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: #8a6018;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .ability-name span { color: #b09040; font-weight: 400; font-size: 9px; margin-left: 4px; }
+  .ability-desc { font-size: 12px; color: #6a5030; line-height: 1.55; font-style: italic; }
+  .ability-desc strong { color: #b07020; font-style: normal; }
+
+  /* Lore */
+  .lore {
+    margin: 0 20px 14px;
+    padding: 12px 16px;
+    background: #fffbef;
+    border: 1px solid #e0cc80;
+    border-radius: 2px;
+    position: relative;
+  }
+  .lore::before {
+    content: '✦';
+    position: absolute; top: -8px; left: 12px;
+    background: #fdf8e8; padding: 0 6px;
+    font-size: 12px; color: #c8a840;
+  }
+  .lore-text { font-size: 11.5px; color: #8a7040; line-height: 1.7; font-style: italic; font-weight: 300; }
+
+  /* Footer */
+  .footer {
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e0cc80;
+    background: #fdf8e8;
+  }
+  .rarity { display: flex; align-items: center; gap: 6px; }
+  .rarity-gem {
+    width: 10px; height: 10px;
+    background: radial-gradient(circle at 35% 35%, #ffe880, #d4a020);
+    border-radius: 2px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 8px #ffcc44, 0 0 16px #ffaa2266;
+    animation: gemPulse 3s ease-in-out infinite;
+  }
+  @keyframes gemPulse {
+    0%, 100% { box-shadow: 0 0 8px #ffcc44, 0 0 16px #ffaa2266; }
+    50% { box-shadow: 0 0 14px #ffee66, 0 0 28px #ffcc4499; }
+  }
+  .rarity-label { font-family: 'Cinzel', serif; font-size: 9px; color: #a07828; letter-spacing: 2px; }
+  .attune { font-size: 10px; color: #a09060; font-style: italic; }
+
+  .bottom-bar {
+    height: 6px;
+    background: linear-gradient(90deg, transparent, #c8a84a, #ffe080, #f0cc60, #c8a84a, transparent);
+  }
+</style>
+</head>
+<body>
+
+<div class="motes" id="motes"></div>
+
+<div class="card-wrapper">
+  <div class="card">
+    <div class="top-bar"></div>
+
+    <div class="card-inner">
+      <div class="type-banner">Arma Leggendaria · Pugnale</div>
+
+      <div class="title-zone">
+        <div class="title">Scheggia dell'Alba</div>
+        <div class="subtitle">La Lama che Porta l'Aurora</div>
+      </div>
+
+      <!-- Illustrated zone -->
+      <div class="image-zone">
+        <div class="halo"></div>
+
+        <!-- Rotating rays -->
+        <svg class="ray-ring" viewBox="0 0 160 160">
+          <g transform="translate(80,80)">
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(22.5)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(45)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(67.5)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(90)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(112.5)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(135)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(157.5)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(180)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(202.5)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(225)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(247.5)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(270)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(292.5)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(315)"/>
+            <line x1="0" y1="-75" x2="0" y2="-55" stroke="#ffcc44" stroke-width="3" transform="rotate(337.5)"/>
+          </g>
+        </svg>
+
+        <!-- Dagger SVG -->
+        <svg class="dagger-svg" width="80" height="190" viewBox="0 0 80 190">
+          <defs>
+            <linearGradient id="bladeLight" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#d4eaff"/>
+              <stop offset="25%" stop-color="#fff8c0"/>
+              <stop offset="50%" stop-color="#ffffff"/>
+              <stop offset="75%" stop-color="#fff0a0"/>
+              <stop offset="100%" stop-color="#d4eaff"/>
+            </linearGradient>
+            <linearGradient id="handleLight" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#c8a030"/>
+              <stop offset="50%" stop-color="#ffe880"/>
+              <stop offset="100%" stop-color="#c8a030"/>
+            </linearGradient>
+            <filter id="glowLight">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Blade glow aura -->
+          <ellipse cx="40" cy="75" rx="12" ry="70" fill="#ffee8844" filter="url(#glowLight)"/>
+
+          <!-- Blade -->
+          <path d="M40 8 L48 135 L40 144 L32 135 Z" fill="url(#bladeLight)" filter="url(#glowLight)"/>
+          <!-- Center line highlight -->
+          <line x1="40" y1="12" x2="40" y2="134" stroke="white" stroke-width="1" opacity="0.9"/>
+          <!-- Edge shimmer -->
+          <path d="M40 8 L48 135" stroke="#ffe060" stroke-width="0.5" opacity="0.5"/>
+
+          <!-- Sun sigil on blade -->
+          <circle cx="40" cy="55" r="7" fill="none" stroke="#ffd040" stroke-width="1" opacity="0.7"/>
+          <circle cx="40" cy="55" r="3" fill="#ffe880" opacity="0.7"/>
+          <line x1="40" y1="46" x2="40" y2="43" stroke="#ffd040" stroke-width="1" opacity="0.7"/>
+          <line x1="40" y1="64" x2="40" y2="67" stroke="#ffd040" stroke-width="1" opacity="0.7"/>
+          <line x1="31" y1="55" x2="28" y2="55" stroke="#ffd040" stroke-width="1" opacity="0.7"/>
+          <line x1="49" y1="55" x2="52" y2="55" stroke="#ffd040" stroke-width="1" opacity="0.7"/>
+
+          <!-- Crossguard -->
+          <path d="M20 144 Q40 140 60 144 L58 154 Q40 150 22 154 Z" fill="#c8a030" stroke="#ffe080" stroke-width="0.5"/>
+          <!-- Gems on guard -->
+          <ellipse cx="27" cy="149" rx="4" ry="3" fill="#fff8a0" filter="url(#glowLight)" opacity="0.9"/>
+          <ellipse cx="53" cy="149" rx="4" ry="3" fill="#fff8a0" filter="url(#glowLight)" opacity="0.9"/>
+
+          <!-- Handle -->
+          <rect x="34" y="154" width="12" height="28" rx="2" fill="url(#handleLight)" stroke="#c8a030" stroke-width="0.5"/>
+          <!-- Wrap -->
+          <line x1="34" y1="159" x2="46" y2="159" stroke="#a07020" stroke-width="1.2" opacity="0.6"/>
+          <line x1="34" y1="164" x2="46" y2="164" stroke="#a07020" stroke-width="1.2" opacity="0.6"/>
+          <line x1="34" y1="169" x2="46" y2="169" stroke="#a07020" stroke-width="1.2" opacity="0.6"/>
+          <line x1="34" y1="174" x2="46" y2="174" stroke="#a07020" stroke-width="1.2" opacity="0.6"/>
+
+          <!-- Pommel -->
+          <path d="M33 182 Q40 178 47 182 L48 187 Q40 184 32 187 Z" fill="#c8a030" stroke="#ffe080" stroke-width="0.5"/>
+          <circle cx="40" cy="185" r="5" fill="#ffe880" filter="url(#glowLight)"/>
+          <circle cx="40" cy="185" r="2.5" fill="white" opacity="0.9"/>
+        </svg>
+
+        <!-- Sparkle particles in image -->
+        <div class="sparkle" style="top:20%;left:25%;width:6px;height:6px;animation-duration:2.5s;animation-delay:0s;color:#ffcc44;background:#ffdd88;"></div>
+        <div class="sparkle" style="top:35%;left:75%;width:5px;height:5px;animation-duration:3.2s;animation-delay:0.8s;background:#ffffaa;"></div>
+        <div class="sparkle" style="top:65%;left:20%;width:4px;height:4px;animation-duration:2.8s;animation-delay:1.4s;background:#fff0c0;"></div>
+        <div class="sparkle" style="top:70%;left:78%;width:7px;height:7px;animation-duration:3.5s;animation-delay:0.3s;background:#ffeeaa;"></div>
+        <div class="sparkle" style="top:15%;left:60%;width:5px;height:5px;animation-duration:2.2s;animation-delay:1.8s;background:#ffffff;"></div>
+      </div>
+
+      <div class="divider">— ✦ —</div>
+
+      <!-- Stats -->
+      <div class="stats-block">
+        <div class="stat-row">
+          <div class="stat-label">Danno</div>
+          <div class="stat-value"><strong>3d6+8</strong> radiante</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-label">Bonus Attacco</div>
+          <div class="stat-value"><strong>+3</strong> att/danni</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-label">Proprietà</div>
+          <div class="stat-value">Fin., Legg., Lancia.</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-label">Tipo</div>
+          <div class="stat-value">Magica, Sacra</div>
+        </div>
+        <div class="stat-row full">
+          <div class="stat-label">Danno Critico</div>
+          <div class="stat-value">Con 19-20 → critico + <strong>4d8</strong> radiante bonus + acceca il bersaglio (TS Cos CD 18)</div>
+        </div>
+      </div>
+
+      <!-- Abilities -->
+      <div class="abilities">
+
+        <div class="ability">
+          <div class="ability-name">Riflesso dell'Alba <span>(Passiva)</span></div>
+          <div class="ability-desc">Ogni volta che la lama colpisce una creatura, un bagliore dorato avvolge il portatore: recupera <strong>1d6 PF</strong>. Se il colpo avviene in piena luce solare (naturale o prodotta dalla lama stessa), la cura diventa <strong>1d6 + il tuo modificatore di Carisma</strong>.</div>
+        </div>
+
+        <div class="ability">
+          <div class="ability-name">Giudizio Astrale <span>(Al Colpo)</span></div>
+          <div class="ability-desc">Contro celestiali, divinità minori, avatar divini ed entità di origine stellare, ogni colpo infligge <strong>4d8 danni radianti</strong> aggiuntivi. Il bersaglio deve superare un TS Sag CD 18 o essere <em>accecato</em> fino alla fine del suo prossimo turno — la luce della lama è semplicemente troppo pura persino per occhi divini.</div>
+        </div>
+
+        <div class="ability">
+          <div class="ability-name">Raggio del Primo Sole <span>(1/Riposo Lungo)</span></div>
+          <div class="ability-desc">Come azione, proietti un raggio di luce solare pura in una linea di 18m (largh. 1.5m). Ogni creatura nel percorso subisce <strong>10d10 danni radianti</strong> (TS Des CD 19 per dimezzare). I non-morti non possono dimezzare il danno.</div>
+        </div>
+
+        <div class="ability">
+          <div class="ability-name">Tocco della Resurrezione <span>(1/Settimana)</span></div>
+          <div class="ability-desc">Toccando una creatura morta da non più di 24 ore, puoi riportarla in vita con 1 PF. L'energia luminosa della lama si consuma temporaneamente: perde il bonus +3 fino al prossimo alba.</div>
+        </div>
+
+      </div>
+
+      <!-- Lore -->
+      <div class="lore">
+        <p class="lore-text">
+          Nata dall'ultima scintilla di una stella morente, fu raccolta da Solara, prima sacerdotessa del Sole, che la forgiò attraverso cento albe consecutive. Si dice che chiunque la impugni non possa mentire alla luce del giorno — e che il drago che la custodisce non abbia mai visto l'aurora.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div class="rarity">
+          <div class="rarity-gem"></div>
+          <div class="rarity-label">Leggendaria</div>
+        </div>
+        <div class="attune">Richiede sintonizzazione</div>
+      </div>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+</div>
+
+<script>
+  const container = document.getElementById('motes');
+  for (let i = 0; i < 30; i++) {
+    const m = document.createElement('div');
+    m.className = 'mote';
+    const size = 2 + Math.random() * 5;
+    m.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      width: ${size}px;
+      height: ${size}px;
+      --dx: ${(Math.random() * 100 - 50)}px;
+      animation-duration: ${5 + Math.random() * 8}s;
+      animation-delay: ${Math.random() * 10}s;
+      box-shadow: 0 0 ${size * 2}px #ffee88;
+      background: ${Math.random() > 0.5 ? '#ffffee' : '#ffeebb'};
+    `;
+    container.appendChild(m);
+  }
+</script>
+</body>
+</html>
