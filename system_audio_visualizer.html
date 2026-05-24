@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visualizzatore Audio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #000000;
+    --surface: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.07);
+    --text: #c8d4e8;
+    --text-dim: #5a6a82;
+    --accent: #38bdf8;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    color: var(--text);
+    font-family: var(--font-ui);
+    overflow: hidden;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1000; opacity: 0.4;
+  }
+
+  /* LAYOUT */
+  #app {
+    display: grid;
+    grid-template-columns: 110px 1fr 110px;
+    grid-template-rows: 1fr auto;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* CANVAS PRINCIPALE (centro) */
+  #mainCanvas {
+    grid-column: 2;
+    grid-row: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #dropCanvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  /* IDLE CENTER */
+  #idle {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    pointer-events: none;
+    transition: opacity 0.6s;
+  }
+  #idle.hidden { opacity: 0; }
+
+  .idle-ring {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.08);
+    border-top-color: rgba(56,189,248,0.5);
+    animation: spin 3s linear infinite;
+    position: relative;
+  }
+  .idle-ring::after {
+    content: '';
+    position: absolute; inset: 8px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-bottom-color: rgba(168,85,247,0.4);
+    animation: spin 2s linear infinite reverse;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .idle-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* BARRE LATERALI */
+  .bar-panel {
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 16px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-panel canvas {
+    width: 100%; height: 100%;
+  }
+
+  #leftPanel  { grid-column: 1; }
+  #rightPanel { grid-column: 3; }
+
+  /* BOTTOM BAR */
+  #bottomBar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.6);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    gap: 16px;
+  }
+
+  .status-group {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.4s, box-shadow 0.4s;
+    flex-shrink: 0;
+  }
+  .dot.live {
+    background: #4ade80;
+    box-shadow: 0 0 8px #4ade80aa;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 6px #4ade8088; }
+    50%      { box-shadow: 0 0 14px #4ade80cc; }
+  }
+  #statusText {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* VOL */
+  .vol-group {
+    display: flex; align-items: center; gap: 8px; flex: 1; max-width: 240px;
+  }
+  .vol-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+  .vol-track {
+    flex: 1; height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  #volBar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #38bdf8, #a855f7, #ec4899);
+    border-radius: 99px;
+    transition: width 0.05s;
+  }
+  #volNum {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  /* BUTTON */
+  #startBtn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 4px;
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #startBtn:hover {
+    background: rgba(56,189,248,0.08);
+    border-color: rgba(56,189,248,0.6);
+  }
+  #startBtn.stop {
+    color: #f87171;
+    border-color: rgba(248,113,113,0.3);
+  }
+  #startBtn.stop:hover {
+    background: rgba(248,113,113,0.08);
+    border-color: rgba(248,113,113,0.6);
+  }
+
+  /* NOTE TASTIERA */
+  .key-hint {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+  }
+
+  /* INFO PILL */
+  .info-pill {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 8px;
+    letter-spacing: 0.06em;
+  }
+
+  /* POINTS */
+  #pts-group {
+    display: flex; align-items: center; gap: 7px;
+    flex-shrink: 0; position: relative;
+  }
+  #pts-label {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+  #pts-val {
+    font-family: var(--font-mono);
+    font-size: 13px; color: #fbbf24;
+    letter-spacing: 0.05em;
+  }
+  #pts-val.pop { animation: pts-pop 0.4s ease-out; }
+  @keyframes pts-pop {
+    0%   { transform: scale(1.7); color: #fff; }
+    100% { transform: scale(1);   color: #fbbf24; }
+  }
+  #pts-delta {
+    font-family: var(--font-mono);
+    font-size: 11px; color: #4ade80;
+    position: absolute; right: 0; top: -4px;
+    pointer-events: none; opacity: 0;
+  }
+  #pts-delta.show { animation: delta-fly 0.85s ease-out forwards; }
+  @keyframes delta-fly {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-26px); }
+  }
+  #combo-badge {
+    font-family: var(--font-mono); font-size: 9px;
+    color: #f97316; letter-spacing: 0.06em;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  #combo-badge.show { opacity: 1; }
+
+  /* SCANLINE subtle */
+  #mainCanvas::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* ═══ MOBILE ONLY ═══════════════════════════════════════════════ */
+  @media (max-width: 768px), (pointer: coarse) {
+    html, body {
+      overflow: auto;
+      height: auto;
+      min-height: 100%;
+    }
+    #app {
+      grid-template-columns: 55px 1fr 55px;
+      height: auto;
+      min-height: 100dvh;
+    }
+    .bar-panel { padding: 8px 0; }
+    #bottomBar { padding: 8px 12px; gap: 10px; }
+    .key-hint  { display: none; }
+    .info-pill { display: none; }
+    #volGroup  { max-width: 160px; }
+    #statusText { font-size: 10px; }
+    #startBtn  { display: none; }
+    .idle-label { font-size: 10px; letter-spacing: 0.1em; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="bar-panel" id="leftPanel">
+    <canvas id="leftCanvas"></canvas>
+  </div>
+
+  <div id="mainCanvas">
+    <canvas id="dropCanvas"></canvas>
+    <div id="idle">
+      <div class="idle-ring"></div>
+      <div class="idle-label">in attesa del segnale</div>
+    </div>
+  </div>
+
+  <div class="bar-panel" id="rightPanel">
+    <canvas id="rightCanvas"></canvas>
+  </div>
+
+  <div id="bottomBar">
+    <div class="status-group">
+      <div class="dot" id="dot"></div>
+      <span id="statusText">premi connetti per iniziare</span>
+    </div>
+
+    <div class="vol-group" id="volGroup" style="visibility:hidden;">
+      <span class="vol-label">VOL</span>
+      <div class="vol-track"><div id="volBar"></div></div>
+      <span id="volNum">0%</span>
+    </div>
+
+    <div id="pts-group">
+      <span id="pts-label">PTS</span>
+      <span id="pts-val">0</span>
+      <span id="combo-badge"></span>
+      <span id="pts-delta"></span>
+    </div>
+
+    <span class="key-hint">tasti → effetto schermo</span>
+
+    <button id="startBtn" onclick="startCapture()">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9"/></svg>
+      Connetti
+    </button>
+
+    <span class="info-pill">Chrome / Win → condividi audio</span>
+  </div>
+</div>
+
+<script>
+// ─── POINTS SYSTEM ───────────────────────────────────────────────
+const POINTS_KEY = 'campo-points';
+
+function getPoints() {
+  return parseInt(localStorage.getItem(POINTS_KEY) || '0');
+}
+function savePoints(n) {
+  localStorage.setItem(POINTS_KEY, String(n));
+}
+
+let _sessionPts = 0;   // punti guadagnati in questa sessione
+let _combo = 0;        // combo esplosioni ravvicinate
+let _comboTimer = null;
+let _timeTickTimer = null;
+
+function addPoints(amount, label) {
+  const total = getPoints() + amount;
+  savePoints(total);
+  _sessionPts += amount;
+
+  // aggiorna display
+  const el = document.getElementById('pts-val');
+  if (el) {
+    el.textContent = total;
+    el.classList.remove('pop');
+    void el.offsetWidth; // reflow per restart animation
+    el.classList.add('pop');
+    el.addEventListener('animationend', () => el.classList.remove('pop'), { once: true });
+  }
+
+  // delta floating
+  const delta = document.getElementById('pts-delta');
+  if (delta) {
+    delta.textContent = '+' + amount + (label ? ' ' + label : '');
+    delta.classList.remove('show');
+    void delta.offsetWidth;
+    delta.classList.add('show');
+    delta.addEventListener('animationend', () => delta.classList.remove('show'), { once: true });
+  }
+}
+
+function triggerCombo() {
+  _combo++;
+  clearTimeout(_comboTimer);
+  _comboTimer = setTimeout(() => {
+    _combo = 0;
+    const badge = document.getElementById('combo-badge');
+    if (badge) badge.classList.remove('show');
+  }, 2500);
+
+  const badge = document.getElementById('combo-badge');
+  if (badge && _combo >= 2) {
+    badge.textContent = 'x' + _combo + '!';
+    badge.classList.add('show');
+  }
+
+  const bonus = _combo >= 3 ? 10 : _combo >= 2 ? 5 : 3;
+  addPoints(bonus, _combo >= 2 ? '💥x' + _combo : '💥');
+}
+
+// +1 pt per goccia spawnata manualmente
+function pointsOnDrop() {
+  addPoints(1);
+}
+
+// tick passivo: +1 pt ogni 30s mentre si usa
+function startTimeTick() {
+  stopTimeTick();
+  _timeTickTimer = setInterval(() => addPoints(1, '⏱'), 30000);
+}
+function stopTimeTick() {
+  if (_timeTickTimer) { clearInterval(_timeTickTimer); _timeTickTimer = null; }
+}
+
+// inizializza display con punti attuali
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('pts-val');
+  if (el) el.textContent = getPoints();
+});
+// anche subito se DOM già pronto
+(function() {
+  const el = document.getElementById('pts-val');
+  if (el) el.textContent = getPoints();
+})();
+
+
+let leftW, leftH, rightW, rightH, dropW, dropH;
+const leftCv  = document.getElementById('leftCanvas');
+const rightCv = document.getElementById('rightCanvas');
+const dropCv  = document.getElementById('dropCanvas');
+const leftCtx  = leftCv.getContext('2d');
+const rightCtx = rightCv.getContext('2d');
+const dropCtx  = dropCv.getContext('2d');
+
+// ─── RESIZE ──────────────────────────────────────────────────────
+function resize() {
+  const lp = document.getElementById('leftPanel');
+  const rp = document.getElementById('rightPanel');
+  const mc = document.getElementById('mainCanvas');
+
+  leftW  = leftCv.width  = lp.clientWidth;
+  leftH  = leftCv.height = lp.clientHeight;
+  rightW = rightCv.width  = rp.clientWidth;
+  rightH = rightCv.height = rp.clientHeight;
+  dropW  = dropCv.width  = mc.clientWidth;
+  dropH  = dropCv.height = mc.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── RAINBOW HELPER ──────────────────────────────────────────────
+function rainbow(t, alpha = 1) {
+  // t ∈ [0,1]
+  const h = t * 360;
+  return `hsla(${h},100%,60%,${alpha})`;
+}
+
+// ─── AUDIO CAPTURE ───────────────────────────────────────────────
+async function startCapture() {
+  if (running) { stopAll(); return; }
+  setStatus('seleziona finestra e spunta "condividi audio"...');
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    const audioTracks = stream.getAudioTracks();
+    stream.getVideoTracks().forEach(t => t.stop());
+    if (!audioTracks.length) {
+      setStatus('nessun audio trovato — hai spuntato "condividi audio"?');
+      return;
+    }
+    const ac = new AudioContext();
+    const src = ac.createMediaStreamSource(new MediaStream(audioTracks));
+    analyser = ac.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.82;
+    src.connect(analyser);
+    running = true;
+
+    document.getElementById('idle').classList.add('hidden');
+    document.getElementById('dot').classList.add('live');
+    document.getElementById('volGroup').style.visibility = 'visible';
+    const btn = document.getElementById('startBtn');
+    btn.classList.add('stop');
+    btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="8" height="8"/></svg> Stop`;
+    setStatus('audio connesso — in ascolto');
+
+    resize();
+    loop();
+    startTimeTick();
+    audioTracks[0].addEventListener('ended', stopAll);
+  } catch(e) {
+    const msgs = {
+      NotAllowedError: 'permesso negato o dialogo chiuso.',
+      NotSupportedError: 'api non disponibile — salva come .html e apri nel browser.',
+      NotFoundError: 'nessuna sorgente trovata.'
+    };
+    setStatus(msgs[e.name] || ('errore: ' + e.message));
+  }
+}
+
+function stopAll() {
+  running = false;
+  stopTimeTick();
+  cancelAnimationFrame(animId);
+  leftCtx.clearRect(0, 0, leftW, leftH);
+  rightCtx.clearRect(0, 0, rightW, rightH);
+  document.getElementById('idle').classList.remove('hidden');
+  document.getElementById('dot').classList.remove('live');
+  document.getElementById('volGroup').style.visibility = 'hidden';
+  const btn = document.getElementById('startBtn');
+  btn.classList.remove('stop');
+  btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9"/></svg> Connetti`;
+  setStatus('stream terminato. premi connetti per riprendere.');
+}
+
+function setStatus(t) {
+  document.getElementById('statusText').textContent = t;
+}
+
+// ─── MAIN LOOP ───────────────────────────────────────────────────
+function loop() {
+  if (!running) return;
+  animId = requestAnimationFrame(loop);
+  const n = analyser.frequencyBinCount;
+  const freq = new Uint8Array(n);
+  analyser.getByteFrequencyData(freq);
+
+  const bars = 48;
+  const step = Math.floor(n * 0.75 / bars);
+
+  // compute volumes per bar
+  const vals = [];
+  let totalVol = 0;
+  for (let i = 0; i < bars; i++) {
+    const v = freq[i * step] / 255;
+    vals.push(v);
+    totalVol += v;
+  }
+
+  // ── LEFT PANEL: bottom→top, low freq
+  leftCtx.clearRect(0, 0, leftW, leftH);
+  {
+    const barsL = bars;
+    const gap = 1;
+    const bh = Math.max(2, (leftH - gap * (barsL - 1)) / barsL);
+    for (let i = 0; i < barsL; i++) {
+      const v = vals[i];
+      const bw = Math.max(3, v * leftW * 0.96);
+      const y = leftH - i * (bh + gap) - bh;
+      const t = i / barsL;
+
+      // glow
+      const grad = leftCtx.createLinearGradient(0, 0, bw, 0);
+      grad.addColorStop(0, rainbow(t, 0.06));
+      grad.addColorStop(1, rainbow(t, 0.85 * v + 0.15));
+      leftCtx.fillStyle = grad;
+      leftCtx.fillRect(0, y, bw, bh);
+
+      // bright tip
+      if (v > 0.05) {
+        leftCtx.fillStyle = rainbow(t, 1);
+        leftCtx.fillRect(bw - 3, y, 3, bh);
+      }
+    }
+  }
+
+  // ── RIGHT PANEL: bottom→top, high freq
+  rightCtx.clearRect(0, 0, rightW, rightH);
+  {
+    const barsR = bars;
+    const gap = 1;
+    const bh = Math.max(2, (rightH - gap * (barsR - 1)) / barsR);
+    for (let i = 0; i < barsR; i++) {
+      const v = vals[barsR - 1 - i]; // mirrored freq
+      const bw = Math.max(3, v * rightW * 0.96);
+      const y = rightH - i * (bh + gap) - bh;
+      const t = (barsR - 1 - i) / barsR;
+
+      const grad = rightCtx.createLinearGradient(rightW, 0, rightW - bw, 0);
+      grad.addColorStop(0, rainbow(t, 0.06));
+      grad.addColorStop(1, rainbow(t, 0.85 * v + 0.15));
+      rightCtx.fillStyle = grad;
+      rightCtx.fillRect(rightW - bw, y, bw, bh);
+
+      if (v > 0.05) {
+        rightCtx.fillStyle = rainbow(t, 1);
+        rightCtx.fillRect(rightW - bw, y, 3, bh);
+      }
+    }
+  }
+
+  // ── VOL
+  const avgVol = Math.round((totalVol / bars) * 100);
+  document.getElementById('volBar').style.width = avgVol + '%';
+  document.getElementById('volNum').textContent = avgVol + '%';
+
+  // ── DROP CANVAS: pulizia completa, nessun residuo
+  dropCtx.clearRect(0, 0, dropW, dropH);
+
+  updateDrops();
+}
+
+// ─── DROP SYSTEM ─────────────────────────────────────────────────
+const drops = [];
+
+// Mappa tastiera → posizione schermo (normalizzata 0..1)
+// Keyboard layout QWERTY: 4 righe, colonne 0..N
+const KEY_MAP = {
+  // riga 0 (cifre) y≈0.05
+  '`':  [0.02, 0.05], '1': [0.10, 0.05], '2': [0.18, 0.05], '3': [0.26, 0.05],
+  '4':  [0.34, 0.05], '5': [0.42, 0.05], '6': [0.50, 0.05], '7': [0.58, 0.05],
+  '8':  [0.66, 0.05], '9': [0.74, 0.05], '0': [0.82, 0.05], '-': [0.90, 0.05],
+  '=':  [0.96, 0.05],
+  // riga 1 (QWERTY) y≈0.30
+  'q':  [0.07, 0.30], 'w': [0.15, 0.30], 'e': [0.23, 0.30], 'r': [0.31, 0.30],
+  't':  [0.39, 0.30], 'y': [0.47, 0.30], 'u': [0.55, 0.30], 'i': [0.63, 0.30],
+  'o':  [0.71, 0.30], 'p': [0.79, 0.30], '[': [0.87, 0.30], ']': [0.93, 0.30],
+  // riga 2 (ASDF) y≈0.55
+  'a':  [0.09, 0.55], 's': [0.17, 0.55], 'd': [0.25, 0.55], 'f': [0.33, 0.55],
+  'g':  [0.41, 0.55], 'h': [0.49, 0.55], 'j': [0.57, 0.55], 'k': [0.65, 0.55],
+  'l':  [0.73, 0.55], ';': [0.81, 0.55], "'": [0.89, 0.55],
+  // riga 3 (ZXCV) y≈0.78
+  'z':  [0.12, 0.78], 'x': [0.20, 0.78], 'c': [0.28, 0.78], 'v': [0.36, 0.78],
+  'b':  [0.44, 0.78], 'n': [0.52, 0.78], 'm': [0.60, 0.78], ',': [0.68, 0.78],
+  '.':  [0.76, 0.78], '/': [0.84, 0.78],
+  // spazio y≈0.92
+  ' ':  [0.50, 0.92],
+};
+
+document.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+  let pos = KEY_MAP[key];
+  if (!pos) return;
+  const x = pos[0] * dropW;
+  const y = pos[1] * dropH;
+  const hue = (pos[0] * 360 + pos[1] * 180) % 360;
+  spawnDrop(x, y, hue);
+  pointsOnDrop();
+});
+
+// size: 'small' | 'large' | 'explosion'
+function spawnDrop(x, y, hue, size = 'small', touchId = -1) {
+  if (drops.length >= 20) return;
+  const isLarge = size === 'large';
+  const isExplosion = size === 'explosion';
+  const maxR = isExplosion ? 180 : isLarge ? 520 : 340;
+  const speed = maxR / (isExplosion ? 35 : 65);
+  const centerR = isExplosion ? 28 : isLarge ? 60 : 44;
+  const decay = isExplosion ? 0.91 : 0.928;
+  const centerDecay = isExplosion ? 0.84 : 0.89;
+  drops.push({
+    x, y, hue, isLarge, isExplosion,
+    rings: [{ r: 2, alpha: 1, speed }],
+    maxR, centerR,
+    centerAlpha: 1, centerDecay, decay,
+    exploded: false,
+    touchId,
+  });
+}
+
+// ─── COLLISION DETECTION → EXPLOSION ─────────────────────────────
+function checkCollisions() {
+  const live = drops.filter(d => !d.isExplosion && !d.exploded && d.centerAlpha > 0.05);
+  for (let a = 0; a < live.length; a++) {
+    for (let b = a + 1; b < live.length; b++) {
+      const da = live[a], db = live[b];
+      const dist = Math.hypot(da.x - db.x, da.y - db.y);
+      if (dist < (da.centerR + db.centerR) * 0.9 && da.touchId !== db.touchId) {
+        const ex = (da.x + db.x) / 2;
+        const ey = (da.y + db.y) / 2;
+        const baseHue = (da.hue + db.hue) / 2;
+        da.exploded = true; db.exploded = true;
+        da.centerDecay = 0.55; db.centerDecay = 0.55;
+        da.decay = 0.65;       db.decay = 0.65;
+        triggerExplosion(ex, ey, baseHue);
+        triggerCombo();
+      }
+    }
+  }
+}
+
+function triggerExplosion(cx, cy, baseHue) {
+  const count = 10;
+  for (let i = 0; i < count; i++) {
+    if (drops.length >= 20) break;
+    const angle = (i / count) * Math.PI * 2;
+    spawnDrop(cx + Math.cos(angle) * 90, cy + Math.sin(angle) * 90, (baseHue + i * 36) % 360, 'explosion');
+  }
+  if (drops.length < 20) spawnDrop(cx, cy, baseHue, 'large');
+}
+
+function updateDrops() {
+  checkCollisions();
+  for (let d = drops.length - 1; d >= 0; d--) {
+    const drop = drops[d];
+
+    // centro flash
+    drop.centerAlpha *= drop.centerDecay;
+    if (drop.centerAlpha > 0.008) {
+      const cr = drop.centerR;
+      const grad = dropCtx.createRadialGradient(drop.x, drop.y, 0, drop.x, drop.y, cr);
+      grad.addColorStop(0,   `hsla(${drop.hue},100%,100%,${drop.centerAlpha})`);
+      grad.addColorStop(0.4, `hsla(${drop.hue+40},100%,80%,${drop.centerAlpha * 0.8})`);
+      grad.addColorStop(1,   `hsla(${drop.hue+80},100%,50%,0)`);
+      dropCtx.fillStyle = grad;
+      dropCtx.beginPath();
+      dropCtx.arc(drop.x, drop.y, cr, 0, Math.PI * 2);
+      dropCtx.fill();
+    }
+
+    // rings
+    for (let ri = drop.rings.length - 1; ri >= 0; ri--) {
+      const ring = drop.rings[ri];
+      ring.r += ring.speed;
+      ring.alpha *= drop.decay;
+
+      if (ring.alpha < 0.008) { drop.rings.splice(ri, 1); continue; }
+
+      const ringHue = (drop.hue + ring.r * 1.8) % 360;
+      const lw = drop.isLarge
+        ? Math.max(2, ring.alpha * 10)
+        : Math.max(1.5, ring.alpha * 7);
+      dropCtx.beginPath();
+      dropCtx.arc(drop.x, drop.y, ring.r, 0, Math.PI * 2);
+      dropCtx.lineWidth = lw;
+      dropCtx.strokeStyle = `hsla(${ringHue},100%,88%,${Math.min(1, ring.alpha * 1.4)})`;
+      dropCtx.stroke();
+    }
+
+    if (drop.rings.length === 0 && drop.centerAlpha <= 0.008) {
+      drops.splice(d, 1);
+    }
+  }
+}
+
+// ─── CLICK MOUSE ─────────────────────────────────────────────────
+document.getElementById('dropCanvas').style.pointerEvents = 'auto';
+document.getElementById('dropCanvas').addEventListener('click', (e) => {
+  const rect = dropCv.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const hue = Math.random() * 360;
+  spawnDrop(x, y, hue, 'large');
+  pointsOnDrop();
+});
+
+
+// ═══ MOBILE TOUCH MODE ════════════════════════════════════════════════════════
+const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+if (isMobile) {
+  // Nascondi elementi PC-only e adatta UI
+  document.getElementById('startBtn').style.display = 'none';
+  document.querySelector('.key-hint') && (document.querySelector('.key-hint').style.display = 'none');
+  document.querySelector('.info-pill') && (document.querySelector('.info-pill').style.display = 'none');
+  document.querySelector('.idle-label').textContent = 'tocca lo schermo';
+  document.getElementById('dot').classList.add('live');
+  document.getElementById('idle').classList.add('hidden');
+  setStatus('tocca per creare gocce');
+  startTimeTick(); // tick passivo anche su mobile
+
+  // ── Sovrascrive spawnDrop per mobile: gocce più grandi e più lente ──
+  const _origSpawnDrop = spawnDrop;
+  window.spawnDrop = function(x, y, hue, size = 'small', touchId = -1) {
+    if (drops.length >= 20) return;
+    const isLarge = size === 'large';
+    const isExplosion = size === 'explosion';
+    // Mobile: raggio massimo aumentato, velocità dimezzata
+    const maxR = isExplosion ? 240 : isLarge ? 700 : 500;
+    const speed = maxR / (isExplosion ? 70 : 140);   // più lento
+    const centerR = isExplosion ? 44 : isLarge ? 90 : 68;
+    const decay = isExplosion ? 0.93 : 0.945;
+    const centerDecay = isExplosion ? 0.87 : 0.92;
+    drops.push({
+      x, y, hue, isLarge, isExplosion,
+      rings: [{ r: 2, alpha: 1, speed }],
+      maxR, centerR,
+      centerAlpha: 1, centerDecay, decay,
+      exploded: false,
+      touchId,
+    });
+  };
+
+  // ── Generatore audio simulato ──────────────────────────────────
+  // Produce vals[0..47] realistici senza microfono
+  let simTime = 0;
+  const simPhases = Array.from({length: 48}, () => Math.random() * Math.PI * 2);
+  const simFreqs  = Array.from({length: 48}, (_, i) => 0.3 + i * 0.04 + Math.random() * 0.2);
+  const simAmps   = Array.from({length: 48}, (_, i) => {
+    // basse frequenze più forti, alte più deboli
+    return 0.55 * Math.exp(-i * 0.035) + 0.15;
+  });
+
+  function getSimVals() {
+    simTime += 0.016;
+    // beat simulato ogni ~0.5s
+    const beat = Math.pow(Math.max(0, Math.sin(simTime * Math.PI * 2)), 8) * 0.5;
+    return Array.from({length: 48}, (_, i) => {
+      const wave = Math.sin(simTime * simFreqs[i] + simPhases[i]) * 0.5 + 0.5;
+      const noise = Math.random() * 0.08;
+      return Math.min(1, simAmps[i] * wave + beat * (1 - i/48) * 0.6 + noise);
+    });
+  }
+
+  // ── Loop mobile (usa simVals invece di analyser) ───────────────
+  function mobileLoop() {
+    animId = requestAnimationFrame(mobileLoop);
+    const vals = getSimVals();
+
+    // LEFT panel
+    leftCtx.clearRect(0, 0, leftW, leftH);
+    {
+      const bars = 48, gap = 1;
+      const bh = Math.max(2, (leftH - gap * (bars - 1)) / bars);
+      for (let i = 0; i < bars; i++) {
+        const v = vals[i];
+        const bw = Math.max(3, v * leftW * 0.96);
+        const y = leftH - i * (bh + gap) - bh;
+        const t = i / bars;
+        const grad = leftCtx.createLinearGradient(0, 0, bw, 0);
+        grad.addColorStop(0, rainbow(t, 0.06));
+        grad.addColorStop(1, rainbow(t, 0.85 * v + 0.15));
+        leftCtx.fillStyle = grad;
+        leftCtx.fillRect(0, y, bw, bh);
+        if (v > 0.05) {
+          leftCtx.fillStyle = rainbow(t, 1);
+          leftCtx.fillRect(bw - 3, y, 3, bh);
+        }
+      }
+    }
+
+    // RIGHT panel
+    rightCtx.clearRect(0, 0, rightW, rightH);
+    {
+      const bars = 48, gap = 1;
+      const bh = Math.max(2, (rightH - gap * (bars - 1)) / bars);
+      for (let i = 0; i < bars; i++) {
+        const v = vals[bars - 1 - i];
+        const bw = Math.max(3, v * rightW * 0.96);
+        const y = rightH - i * (bh + gap) - bh;
+        const t = (bars - 1 - i) / bars;
+        const grad = rightCtx.createLinearGradient(rightW, 0, rightW - bw, 0);
+        grad.addColorStop(0, rainbow(t, 0.06));
+        grad.addColorStop(1, rainbow(t, 0.85 * v + 0.15));
+        rightCtx.fillStyle = grad;
+        rightCtx.fillRect(rightW - bw, y, bw, bh);
+        if (v > 0.05) {
+          rightCtx.fillStyle = rainbow(t, 1);
+          rightCtx.fillRect(rightW - bw, y, 3, bh);
+        }
+      }
+    }
+
+    // vol bar simulata
+    const avg = vals.reduce((a,b) => a+b, 0) / vals.length;
+    document.getElementById('volBar').style.width = Math.round(avg * 100) + '%';
+    document.getElementById('volNum').textContent = Math.round(avg * 100) + '%';
+    document.getElementById('volGroup').style.visibility = 'visible';
+
+    // drops
+    dropCtx.clearRect(0, 0, dropW, dropH);
+    updateDrops();
+  }
+
+  // ── Touch: goccia su ogni tocco, scia se si trascina ──────────
+  const activeTouches = new Map(); // id → lastSpawn timestamp
+
+  document.getElementById('dropCanvas').style.pointerEvents = 'auto';
+
+  document.getElementById('dropCanvas').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      const rect = dropCv.getBoundingClientRect();
+      const x = t.clientX - rect.left;
+      const y = t.clientY - rect.top;
+      spawnDrop(x, y, Math.random() * 360, 'large', t.identifier);
+      activeTouches.set(t.identifier, Date.now());
+      pointsOnDrop();
+    }
+  }, { passive: false });
+
+  document.getElementById('dropCanvas').addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const now = Date.now();
+    for (const t of e.changedTouches) {
+      const last = activeTouches.get(t.identifier) || 0;
+      if (now - last < 250) continue;
+      activeTouches.set(t.identifier, now);
+      const rect = dropCv.getBoundingClientRect();
+      const x = t.clientX - rect.left;
+      const y = t.clientY - rect.top;
+      spawnDrop(x, y, Math.random() * 360, 'small', t.identifier);
+    }
+  }, { passive: false });
+
+  document.getElementById('dropCanvas').addEventListener('touchend', (e) => {
+    for (const t of e.changedTouches) activeTouches.delete(t.identifier);
+  });
+
+  // Avvia subito il loop mobile
+  mobileLoop();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+resize();
+// Draw idle drop fakes for preview
+(function idleAnim() {
+  if (running) return;
+  requestAnimationFrame(idleAnim);
+  dropCtx.clearRect(0, 0, dropW, dropH);
+  updateDrops();
+})();
+
+
+</script>
+</body>
+</html>

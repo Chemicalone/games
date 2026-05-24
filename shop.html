@@ -46,7 +46,7 @@
   body.deco-corner .item-card::after{bottom:3px;right:3px;border-bottom-width:1px;border-right-width:1px;}
   body.deco-corner .item-card:hover::before,body.deco-corner .item-card:hover::after{opacity:.5;}
   #sparkle-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .5s;}
-  body.deco-sparkle #sparkle-canvas,body.deco-aurora #sparkle-canvas,body.deco-rain #sparkle-canvas,body.deco-ember #sparkle-canvas,body.deco-rgb #sparkle-canvas,body.deco-glitch #sparkle-canvas{opacity:1;}
+  body.deco-sparkle #sparkle-canvas,body.deco-aurora #sparkle-canvas,body.deco-rain #sparkle-canvas,body.deco-ember #sparkle-canvas,body.deco-rgb #sparkle-canvas,body.deco-glitch #sparkle-canvas,body.deco-vizualizer #sparkle-canvas{opacity:1;}
 
   /* ── PAGE ── */
   #page-wrap{position:relative;z-index:1;padding:24px 18px 60px;max-width:600px;margin:0 auto;}
@@ -233,6 +233,7 @@ const ITEMS = [
   { id:'deco-pulse',    cat:'deco', name:'pulse',       cost:70,  preview:'deco:◎',       tag:'pulsazione' },
   { id:'deco-static',   cat:'deco', name:'statica',     cost:60,  preview:'deco:░',       tag:'tv rotta' },
   { id:'deco-wave',     cat:'deco', name:'onda',        cost:50,  preview:'deco:~',       tag:'fluttuante' },
+  { id:'deco-vizualizer', cat:'deco', name:'visualizer', cost:500, preview:'deco:▌▊▌',    tag:'★ audio' },
 
   /* ── LAYOUT MENU ── */
   { id:'menu-list',   cat:'menu', name:'lista',  cost:0,  preview:'menu:lista',   tag:'default' },
@@ -314,6 +315,7 @@ const CSS_MAP = {
     'deco-glitch':'glitch','deco-rgb':'rgb','deco-sparkle':'sparkle','deco-aurora':'aurora',
     'deco-rain':'rain','deco-ember':'ember','deco-pulse':'pulse','deco-static':'static',
     'deco-wave':'wave',
+    'deco-vizualizer':'vizualizer',
   },
   menu:{'menu-list':'list','menu-center':'center','menu-grid':'grid'},
   desc:{'desc-show':'show','desc-hide':'hide'},
@@ -457,7 +459,7 @@ function applyCosmetics(){
   });
 
   const ALL_DECO=['scan','vignette','grid','cross','crt','corner','lines','noise',
-    'glitch','rgb','sparkle','aurora','rain','ember','pulse','static','wave'];
+    'glitch','rgb','sparkle','aurora','rain','ember','pulse','static','wave','vizualizer'];
   ALL_DECO.forEach(d=>body.classList.remove('deco-'+d));
   const dv = CSS_MAP.deco[eq['deco']];
   if(dv&&dv!=='none') body.classList.add('deco-'+dv);
@@ -612,8 +614,70 @@ function initCanvas(decoId){
       raf=requestAnimationFrame(loop);
     })();
   }
-}
-function mkSparkle(W,H,acc){
+  else if(decoId==='deco-vizualizer'){
+    // Tenta di agganciarsi all'audio hub; se non c'è usa simulazione
+    let analyser = null;
+    if(window._hubAudioEl){
+      try{
+        const ac = new (window.AudioContext||window.webkitAudioContext)();
+        const src = ac.createMediaElementSource(window._hubAudioEl);
+        analyser = ac.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        src.connect(analyser);
+        src.connect(ac.destination);
+      }catch(e){ analyser = null; }
+    }
+    // barre sinistre e destre sovrapposte al canvas
+    const BARS = 24;
+    let simT = 0;
+    const simPh = Array.from({length:BARS},()=>Math.random()*Math.PI*2);
+    const simFr = Array.from({length:BARS},(_,i)=>0.4+i*0.05+Math.random()*0.15);
+    const simAm = Array.from({length:BARS},(_,i)=>0.55*Math.exp(-i*0.04)+0.2);
+    function getVals(){
+      if(analyser){
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(buf);
+        return Array.from({length:BARS},(_,i)=>buf[Math.floor(i*buf.length/BARS)]/255);
+      }
+      simT+=0.018;
+      const beat=Math.pow(Math.max(0,Math.sin(simT*Math.PI*2)),8)*0.5;
+      return Array.from({length:BARS},(_,i)=>{
+        const w=Math.sin(simT*simFr[i]+simPh[i])*0.5+0.5;
+        return Math.min(1,simAm[i]*w+beat*(1-i/BARS)*0.6+Math.random()*0.05);
+      });
+    }
+    const panW = Math.floor(W*0.085); // ~8.5% larghezza per lato
+    (function loop(){
+      cx.clearRect(0,0,W,H);
+      const vals = getVals();
+      const gap=1, bh=Math.max(2,(H-gap*(BARS-1))/BARS);
+      for(let i=0;i<BARS;i++){
+        const v=vals[i];
+        const hue=i/BARS*300;
+        const alpha=0.55+v*0.35;
+        // sinistra
+        const bwL=Math.max(3,v*panW*0.92);
+        const y=H-i*(bh+gap)-bh;
+        const gL=cx.createLinearGradient(0,0,bwL,0);
+        gL.addColorStop(0,`hsla(${hue},100%,55%,0.06)`);
+        gL.addColorStop(1,`hsla(${hue},100%,65%,${alpha})`);
+        cx.fillStyle=gL; cx.fillRect(0,y,bwL,bh);
+        if(v>0.05){ cx.fillStyle=`hsla(${hue},100%,90%,0.9)`; cx.fillRect(bwL-2,y,2,bh); }
+        // destra (speculare)
+        const vi=vals[BARS-1-i];
+        const hue2=(BARS-1-i)/BARS*300;
+        const alpha2=0.55+vi*0.35;
+        const bwR=Math.max(3,vi*panW*0.92);
+        const gR=cx.createLinearGradient(W,0,W-bwR,0);
+        gR.addColorStop(0,`hsla(${hue2},100%,55%,0.06)`);
+        gR.addColorStop(1,`hsla(${hue2},100%,65%,${alpha2})`);
+        cx.fillStyle=gR; cx.fillRect(W-bwR,y,bwR,bh);
+        if(vi>0.05){ cx.fillStyle=`hsla(${hue2},100%,90%,0.9)`; cx.fillRect(W-bwR,y,2,bh); }
+      }
+      raf=requestAnimationFrame(loop);
+    })();
+  }
   const chars='✦✧⋆·˚◆◇★☆▪▸';
   return{x:Math.random()*W,y:Math.random()*H,ch:chars[Math.floor(Math.random()*chars.length)],
     sz:8+Math.random()*10,col:acc,life:Math.random()*100,max:80+Math.random()*60,
@@ -649,13 +713,14 @@ function getMusicFile(id){
   return item ? item.file : null;
 }
 function playHubMusic(id){
-  if(hubAudio){ hubAudio.pause(); hubAudio.src=''; hubAudio=null; }
+  if(hubAudio){ hubAudio.pause(); hubAudio.src=''; hubAudio=null; window._hubAudioEl=null; }
   const file = getMusicFile(id);
   if(!file) return;
   hubAudio = new Audio(file);
   hubAudio.loop = true;
   hubAudio.volume = 0.45;
   hubAudio.play().catch(()=>{});
+  window._hubAudioEl = hubAudio;
 }
 function applyHubMusic(){
   const eq = getEquipped();
