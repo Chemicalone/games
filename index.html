@@ -520,7 +520,7 @@ function initCanvas(decoId){
     let simT=0;
     const simPh=Array.from({length:BARS},()=>Math.random()*Math.PI*2);
     const simFr=Array.from({length:BARS},(_,i)=>0.4+i*0.05+Math.random()*0.15);
-    const simAm=Array.from({length:BARS},(_,i)=>0.55*Math.exp(-i*0.04)+0.2);
+    const simAm=Array.from({length:BARS},(_,i)=>0.55+Math.random()*0.2);
 
     function tryGetAnalyser(){
       if(window._vizAnalyser) return window._vizAnalyser;
@@ -551,7 +551,7 @@ function initCanvas(decoId){
       const beat=Math.pow(Math.max(0,Math.sin(simT*Math.PI*2)),8)*0.4;
       return Array.from({length:BARS},(_,i)=>{
         const w=Math.sin(simT*simFr[i]+simPh[i])*0.5+0.5;
-        return Math.min(1,simAm[i]*w+beat*(1-i/BARS)*0.5+Math.random()*0.04);
+        return Math.min(1,simAm[i]*w+beat*0.5+Math.random()*0.04);
       });
     }
 

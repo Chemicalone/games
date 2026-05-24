@@ -233,7 +233,7 @@ const ITEMS = [
   { id:'deco-pulse',    cat:'deco', name:'pulse',       cost:70,  preview:'deco:◎',       tag:'pulsazione' },
   { id:'deco-static',   cat:'deco', name:'statica',     cost:60,  preview:'deco:░',       tag:'tv rotta' },
   { id:'deco-wave',     cat:'deco', name:'onda',        cost:50,  preview:'deco:~',       tag:'fluttuante' },
-  { id:'deco-vizualizer', cat:'deco', name:'visualizer', cost:500, preview:'deco:▌▊▌',    tag:'★ audio' },
+  { id:'deco-vizualizer', cat:'deco', name:'visualizer', cost:2000, preview:'deco:▌▊▌',    tag:'★ audio' },
 
   /* ── LAYOUT MENU ── */
   { id:'menu-list',   cat:'menu', name:'lista',  cost:0,  preview:'menu:lista',   tag:'default' },
@@ -633,7 +633,7 @@ function initCanvas(decoId){
     let simT = 0;
     const simPh = Array.from({length:BARS},()=>Math.random()*Math.PI*2);
     const simFr = Array.from({length:BARS},(_,i)=>0.4+i*0.05+Math.random()*0.15);
-    const simAm = Array.from({length:BARS},(_,i)=>0.55*Math.exp(-i*0.04)+0.2);
+    const simAm = Array.from({length:BARS},(_,i)=>0.55+Math.random()*0.2);
     function getVals(){
       if(analyser){
         const buf = new Uint8Array(analyser.frequencyBinCount);
@@ -644,7 +644,7 @@ function initCanvas(decoId){
       const beat=Math.pow(Math.max(0,Math.sin(simT*Math.PI*2)),8)*0.5;
       return Array.from({length:BARS},(_,i)=>{
         const w=Math.sin(simT*simFr[i]+simPh[i])*0.5+0.5;
-        return Math.min(1,simAm[i]*w+beat*(1-i/BARS)*0.6+Math.random()*0.05);
+        return Math.min(1,simAm[i]*w+beat*0.6+Math.random()*0.05);
       });
     }
     const panW = Math.floor(W*0.085); // ~8.5% larghezza per lato
