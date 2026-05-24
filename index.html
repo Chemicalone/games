@@ -111,9 +111,6 @@
   body.deco-rgb #sparkle-canvas,body.deco-glitch #sparkle-canvas,
   body.deco-vizualizer #sparkle-canvas{opacity:1;}
 
-  /* vizualizer: barre sopra tutto il resto */
-  body.deco-vizualizer #sparkle-canvas{ pointer-events:none; }
-
   /* ── LAYOUT ── */
   #hub-wrap{
     position:relative;z-index:1;padding:28px 24px 48px;
@@ -273,8 +270,16 @@
       </div>
       <span class="card-arrow">▶</span>
     </button>
+    <button class="game-card" onclick="go('system_audio_visualizer.html')">
+      <div class="card-left"><span class="card-icon">🎵</span><span class="card-num">07</span></div>
+      <div class="card-body">
+        <div class="card-name">audio visualizer</div>
+        <div class="card-desc">visualizza l'audio di sistema in tempo reale — gocce, onde e colori</div>
+      </div>
+      <span class="card-arrow">▶</span>
+    </button>
     <button class="game-card" onclick="go('shop.html')">
-      <div class="card-left"><span class="card-icon">🛒</span><span class="card-num">07</span></div>
+      <div class="card-left"><span class="card-icon">🛒</span><span class="card-num">08</span></div>
       <div class="card-body">
         <div class="card-name">shop</div>
         <div class="card-desc">cosmetici, effetti, temi — spendi i punti, personalizza tutto</div>
@@ -339,8 +344,7 @@ const CSS_MAP = {
     'deco-grid':'grid','deco-cross':'cross','deco-crt':'crt','deco-noise':'noise',
     'deco-glitch':'glitch','deco-rgb':'rgb','deco-sparkle':'sparkle','deco-aurora':'aurora',
     'deco-rain':'rain','deco-ember':'ember','deco-pulse':'pulse','deco-static':'static',
-    'deco-wave':'wave',
-    'deco-vizualizer':'vizualizer',
+    'deco-wave':'wave','deco-vizualizer':'vizualizer',
   },
   menu:{'menu-list':'list','menu-center':'center','menu-grid':'grid'},
   desc:{'desc-show':'show','desc-hide':'hide'},
@@ -387,11 +391,6 @@ function initCanvas(decoId){
   const cx = cv.getContext('2d');
   cancelAnimationFrame(raf); parts=[];
   if(window._cleanRgb){ window._cleanRgb(); window._cleanRgb=null; }
-  // reset visualizer audio context se si cambia effetto
-  if(decoId !== 'deco-vizualizer' && window._vizAudioCtx){
-    try{ window._vizAudioCtx.close(); }catch(e){}
-    window._vizAudioCtx = null; window._vizSrc = null; window._vizAnalyser = null;
-  }
   cv.width=innerWidth; cv.height=innerHeight;
   const W=cv.width, H=cv.height;
   const acc = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#aaa';
@@ -515,41 +514,39 @@ function initCanvas(decoId){
       raf=requestAnimationFrame(loop);
     })();
   }
-}
-
   else if(decoId==='deco-vizualizer'){
-    let analyser = null;
-    // prova ad agganciarsi all'audio hub appena disponibile
-    function tryConnectAudio(){
-      if(analyser) return;
-      const el = window._hubAudioEl;
-      if(!el) return;
-      try{
-        if(!window._vizAudioCtx){
-          window._vizAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
-          window._vizSrc = window._vizAudioCtx.createMediaElementSource(el);
-          window._vizSrc.connect(window._vizAudioCtx.destination);
-          window._vizAnalyser = window._vizAudioCtx.createAnalyser();
-          window._vizAnalyser.fftSize = 256;
-          window._vizAnalyser.smoothingTimeConstant = 0.82;
-          window._vizSrc.connect(window._vizAnalyser);
-        }
-        analyser = window._vizAnalyser;
-      }catch(e){ analyser = null; }
-    }
-    const BARS = 24;
+    // barre audio laterali — si agganciano alla musica hub se disponibile
+    const BARS=24;
     let simT=0;
     const simPh=Array.from({length:BARS},()=>Math.random()*Math.PI*2);
     const simFr=Array.from({length:BARS},(_,i)=>0.4+i*0.05+Math.random()*0.15);
     const simAm=Array.from({length:BARS},(_,i)=>0.55*Math.exp(-i*0.04)+0.2);
+
+    function tryGetAnalyser(){
+      if(window._vizAnalyser) return window._vizAnalyser;
+      const el=window._hubAudioEl;
+      if(!el||el.paused) return null;
+      try{
+        if(!window._vizAudioCtx){
+          window._vizAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+          window._vizSrc=window._vizAudioCtx.createMediaElementSource(el);
+          window._vizSrc.connect(window._vizAudioCtx.destination);
+          window._vizAnalyser=window._vizAudioCtx.createAnalyser();
+          window._vizAnalyser.fftSize=256;
+          window._vizAnalyser.smoothingTimeConstant=0.82;
+          window._vizSrc.connect(window._vizAnalyser);
+        }
+        return window._vizAnalyser;
+      }catch(e){ return null; }
+    }
+
     function getVizVals(){
-      tryConnectAudio();
-      if(analyser){
-        const buf=new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(buf);
+      const an=tryGetAnalyser();
+      if(an){
+        const buf=new Uint8Array(an.frequencyBinCount);
+        an.getByteFrequencyData(buf);
         return Array.from({length:BARS},(_,i)=>buf[Math.floor(i*buf.length/BARS)]/255);
       }
-      // simulazione se no musica
       simT+=0.018;
       const beat=Math.pow(Math.max(0,Math.sin(simT*Math.PI*2)),8)*0.4;
       return Array.from({length:BARS},(_,i)=>{
@@ -557,7 +554,8 @@ function initCanvas(decoId){
         return Math.min(1,simAm[i]*w+beat*(1-i/BARS)*0.5+Math.random()*0.04);
       });
     }
-    const panW=Math.floor(W*0.085);
+
+    const panW=Math.floor(W*0.09);
     (function loop(){
       cx.clearRect(0,0,W,H);
       const vals=getVizVals();
@@ -565,22 +563,22 @@ function initCanvas(decoId){
       for(let i=0;i<BARS;i++){
         const v=vals[i];
         const hue=i/BARS*300;
-        const al=0.5+v*0.4;
-        // sinistra
+        const al=0.45+v*0.45;
         const bwL=Math.max(3,v*panW*0.92);
         const y=H-i*(bh+gap)-bh;
+        // sinistra
         const gL=cx.createLinearGradient(0,0,bwL,0);
-        gL.addColorStop(0,`hsla(${hue},100%,55%,0.05)`);
+        gL.addColorStop(0,`hsla(${hue},100%,55%,0.04)`);
         gL.addColorStop(1,`hsla(${hue},100%,65%,${al})`);
         cx.fillStyle=gL; cx.fillRect(0,y,bwL,bh);
         if(v>0.05){cx.fillStyle=`hsla(${hue},100%,92%,0.85)`;cx.fillRect(bwL-2,y,2,bh);}
         // destra speculare
         const vi=vals[BARS-1-i];
         const hue2=(BARS-1-i)/BARS*300;
-        const al2=0.5+vi*0.4;
+        const al2=0.45+vi*0.45;
         const bwR=Math.max(3,vi*panW*0.92);
         const gR=cx.createLinearGradient(W,0,W-bwR,0);
-        gR.addColorStop(0,`hsla(${hue2},100%,55%,0.05)`);
+        gR.addColorStop(0,`hsla(${hue2},100%,55%,0.04)`);
         gR.addColorStop(1,`hsla(${hue2},100%,65%,${al2})`);
         cx.fillStyle=gR; cx.fillRect(W-bwR,y,bwR,bh);
         if(vi>0.05){cx.fillStyle=`hsla(${hue2},100%,92%,0.85)`;cx.fillRect(W-bwR,y,2,bh);}
@@ -588,6 +586,9 @@ function initCanvas(decoId){
       raf=requestAnimationFrame(loop);
     })();
   }
+}
+
+function mkSparkle(W,H,acc){
   const chars='✦✧⋆·˚◆◇★☆▪▸';
   return{x:Math.random()*W,y:Math.random()*H,ch:chars[Math.floor(Math.random()*chars.length)],
     sz:8+Math.random()*10,col:acc,life:Math.random()*100,max:80+Math.random()*60,
@@ -616,16 +617,12 @@ applyCosmetics();
 (function(){
   const file = localStorage.getItem('hub-music')||'';
   if(!file) return;
-  // aspetta un gesto utente per partire (autoplay policy)
-  let started = false;
-  // prova subito (funziona se l'utente era già sulla pagina)
   document.addEventListener('DOMContentLoaded', ()=>{
     const audio = new Audio(file);
     audio.loop = true; audio.volume = 0.45;
-    window._hubAudioEl = audio; // esponi per il visualizer
+    window._hubAudioEl = audio; // esposto per deco-vizualizer
     const tryPlay = audio.play();
     if(tryPlay) tryPlay.catch(()=>{
-      // fallback: aspetta click
       const once = ()=>{ audio.play().catch(()=>{}); document.removeEventListener('click',once); };
       document.addEventListener('click', once);
     });
@@ -696,8 +693,6 @@ function dbgResetPoints(){
   if(el) el.textContent = '0';
   dbgStatus('punti azzerati ✓');
 }
-
-
 </script>
 
 <div id="debug-overlay">
