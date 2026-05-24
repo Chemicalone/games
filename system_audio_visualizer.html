@@ -214,6 +214,29 @@
     border-color: rgba(248,113,113,0.6);
   }
 
+  /* HOME BUTTON */
+  #homeBtn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 6px 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex; align-items: center; gap: 6px;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+  #homeBtn:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.25);
+    color: var(--text);
+  }
+
   /* NOTE TASTIERA */
   .key-hint {
     font-family: var(--font-mono);
@@ -356,7 +379,11 @@
     </button>
 
     <span class="info-pill">Chrome / Win → condividi audio</span>
-  </div>
+
+    <a id="homeBtn" href="index.html">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1L1 4.5V9h3V6.5h2V9h3V4.5L5 1z"/></svg>
+      Home
+    </a>
 </div>
 
 <script>
