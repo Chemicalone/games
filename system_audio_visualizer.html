@@ -447,6 +447,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 let leftW, leftH, rightW, rightH, dropW, dropH;
+let analyser = null;
+let running = false;
+let animId = null;
 const leftCv  = document.getElementById('leftCanvas');
 const rightCv = document.getElementById('rightCanvas');
 const dropCv  = document.getElementById('dropCanvas');
