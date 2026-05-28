@@ -472,6 +472,12 @@ function applyCosmetics(){
    CANVAS
 ══════════════════════════════════════════════ */
 let raf=null, parts=[];
+function mkSparkle(W,H,acc){
+  const chars='✦✧⋆·˚◆◇★☆▪▸';
+  return{x:Math.random()*W,y:Math.random()*H,ch:chars[Math.floor(Math.random()*chars.length)],
+    sz:8+Math.random()*10,col:acc,life:Math.random()*100,max:80+Math.random()*60,
+    spd:.5+Math.random()*.8,vy:-.15+Math.random()*.3};
+}
 function initCanvas(decoId){
   const cv=document.getElementById('sparkle-canvas');
   const cx=cv.getContext('2d');
@@ -678,10 +684,6 @@ function initCanvas(decoId){
       raf=requestAnimationFrame(loop);
     })();
   }
-  const chars='✦✧⋆·˚◆◇★☆▪▸';
-  return{x:Math.random()*W,y:Math.random()*H,ch:chars[Math.floor(Math.random()*chars.length)],
-    sz:8+Math.random()*10,col:acc,life:Math.random()*100,max:80+Math.random()*60,
-    spd:.5+Math.random()*.8,vy:-.15+Math.random()*.3};
 }
 function mkEmber(W,H,acc){
   return{x:Math.random()*W,y:H+10,r:1+Math.random()*2.5,
