@@ -400,7 +400,7 @@ function renderShop(){
         prevHTML += `<span class="prev-text" style="font-size:9px;opacity:.5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:90px">${isNone?'nessuna':item.tag}</span>`;
       }
 
-      html += `<button class="${cls}" data-id="${item.id}" onclick="handleItem('${item.id}')">
+      html += `<button class="${cls}" data-id="${item.id}">
         <div class="item-preview">${prevHTML}</div>
         <div class="item-name">${item.name}</div>
         <div class="item-meta">
@@ -737,6 +737,12 @@ function applyHubMusic(){
 applyCosmetics();
 applyHubMusic();
 renderShop();
+
+// Event delegation: gestisce click su tutte le card anche dopo re-render
+document.getElementById('shop-content').addEventListener('click', function(e){
+  const card = e.target.closest('[data-id]');
+  if(card) handleItem(card.dataset.id);
+});
 </script>
 </body>
 </html>
