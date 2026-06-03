@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Simon Says</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f14;
+    --panel: #18181f;
+    --border: #2a2a38;
+    --green:  #2ecc71;
+    --red:    #e74c3c;
+    --yellow: #f1c40f;
+    --blue:   #3498db;
+    --green-glow:  #2ecc7199;
+    --red-glow:    #e74c3c99;
+    --yellow-glow: #f1c40f99;
+    --blue-glow:   #3498db99;
+    --text: #e8e8f0;
+    --muted: #6060a0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 20px;
+    overflow: hidden;
+  }
+
+  /* Sfondo animato */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, #3498db0d 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 80% 80%, #2ecc710d 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 28px; width: 100%; max-width: 400px; }
+
+  /* Header */
+  header { text-align: center; }
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #3498db, #2ecc71);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Score */
+  .score-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .score-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 22px;
+    text-align: center;
+  }
+  .score-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .score-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  #best-val { color: #f1c40f; }
+
+  /* Board Simon */
+  .board-wrap {
+    position: relative;
+    width: min(320px, 86vw);
+    height: min(320px, 86vw);
+  }
+
+  .board {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+    filter: drop-shadow(0 8px 40px #0008);
+  }
+
+  /* I 4 quadranti */
+  .btn {
+    position: absolute;
+    width: 48%;
+    height: 48%;
+    cursor: pointer;
+    transition: filter 0.08s, transform 0.08s;
+    border: 3px solid #0004;
+  }
+
+  .btn-green  { top: 1%; left: 51%; border-radius: 0 100% 0 0; background: #1a6b3c; }
+  .btn-red    { top: 1%; left: 1%;  border-radius: 100% 0 0 0; background: #6b1a1a; }
+  .btn-yellow { top: 51%; left: 1%; border-radius: 0 0 0 100%; background: #6b5a0a; }
+  .btn-blue   { top: 51%; left: 51%; border-radius: 0 0 100% 0; background: #0a3a6b; }
+
+  .btn.lit-green  { background: var(--green);  filter: drop-shadow(0 0 28px var(--green-glow));  transform: scale(1.03); }
+  .btn.lit-red    { background: var(--red);    filter: drop-shadow(0 0 28px var(--red-glow));    transform: scale(1.03); }
+  .btn.lit-yellow { background: var(--yellow); filter: drop-shadow(0 0 28px var(--yellow-glow)); transform: scale(1.03); }
+  .btn.lit-blue   { background: var(--blue);   filter: drop-shadow(0 0 28px var(--blue-glow));   transform: scale(1.03); }
+
+  .btn:active { transform: scale(0.97); }
+
+  /* Centro board */
+  .center-circle {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28%;
+    height: 28%;
+    background: var(--bg);
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .center-dot {
+    width: 38%;
+    height: 38%;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .center-dot.pulse {
+    background: var(--text);
+    box-shadow: 0 0 14px var(--text);
+    animation: pulse-dot 0.35s ease;
+  }
+  @keyframes pulse-dot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+
+  /* Status bar */
+  .status {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-align: center;
+    min-height: 1.4em;
+    transition: color 0.3s;
+  }
+  .status.ok    { color: var(--green); }
+  .status.wrong { color: var(--red); }
+  .status.show  { color: var(--blue); }
+
+  /* Pulsante start */
+  #start-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #3498db22, #2ecc7122);
+    border: 2px solid #3498db88;
+    color: var(--text);
+    border-radius: 50px;
+    padding: 14px 44px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  }
+  #start-btn:hover {
+    background: linear-gradient(135deg, #3498db44, #2ecc7144);
+    border-color: #3498db;
+    box-shadow: 0 0 24px #3498db44;
+  }
+  #start-btn:active { transform: scale(0.96); }
+  #start-btn:disabled { opacity: 0.35; cursor: default; transform: none; box-shadow: none; }
+
+
+
+  /* Overlay game over */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0000009a;
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .overlay-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 44px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: pop-in 0.3s cubic-bezier(.175,.885,.32,1.275);
+  }
+  @keyframes pop-in { from{transform:scale(0.7);opacity:0} to{transform:scale(1);opacity:1} }
+  .overlay-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem;
+    color: var(--red);
+  }
+  .overlay-round {
+    font-size: 1rem;
+    color: var(--muted);
+  }
+  .overlay-round span {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    color: var(--text);
+  }
+  .overlay-best {
+    font-size: 0.85rem;
+    color: #f1c40f;
+  }
+  .overlay-pts {
+    font-size: 0.82rem;
+    color: #2ecc71;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 0.08em;
+  }
+  .overlay-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    background: linear-gradient(135deg, #e74c3c33, #e74c3c66);
+    border: 2px solid #e74c3c88;
+    color: var(--text);
+    border-radius: 50px;
+    padding: 12px 32px;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .overlay-btn:hover {
+    background: linear-gradient(135deg, #e74c3c66, #e74c3c99);
+    box-shadow: 0 0 20px #e74c3c55;
+  }
+</style>
+</head>
+<body>
+
+<div class="content">
+  <header>
+    <h1>Simon Says</h1>
+    <p class="subtitle">Ripeti la sequenza</p>
+  </header>
+
+  <div class="score-row">
+    <div class="score-box">
+      <div class="score-label">Round</div>
+      <div class="score-value" id="round-val">0</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">Record</div>
+      <div class="score-value" id="best-val">0</div>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board">
+      <div class="btn btn-green"  id="btn-green"  data-color="green"></div>
+      <div class="btn btn-red"    id="btn-red"    data-color="red"></div>
+      <div class="btn btn-yellow" id="btn-yellow" data-color="yellow"></div>
+      <div class="btn btn-blue"   id="btn-blue"   data-color="blue"></div>
+      <div class="center-circle">
+        <div class="center-dot" id="center-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status" id="status">Premi Start per iniziare</div>
+  <button id="start-btn">START</button>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <div class="overlay-title">Game Over</div>
+    <div class="overlay-round">Sei arrivato al round <span id="ov-round">0</span></div>
+    <div class="overlay-best" id="ov-best"></div>
+    <div class="overlay-pts" id="ov-points"></div>
+    <button class="overlay-btn" id="ov-restart">Riprova</button>
+  </div>
+</div>
+
+<script>
+  const COLORS = ['green', 'red', 'yellow', 'blue'];
+  const COLOR_CHAR = { green: 'g', red: 'r', yellow: 'y', blue: 'b' };
+  const FLASH_DUR = 400;   // ms accensione
+  const FLASH_GAP = 180;   // ms tra un flash e l'altro
+  const SPEED_STEP = 30;   // ms in meno per round (fino a min)
+  const MIN_SPEED  = 160;
+
+  let sequence = [];
+  let playerIndex = 0;
+  let accepting = false;
+  let best = parseInt(localStorage.getItem('simon-best') || '0');
+  let gameRunning = false;
+  let sessionPoints = 0; // punti guadagnati in questa partita
+
+  function getPoints(){ return parseInt(localStorage.getItem('campo-points')||'0'); }
+  function addPoints(n){
+    const tot = getPoints() + n;
+    localStorage.setItem('campo-points', tot);
+    return tot;
+  }
+
+  const $ = id => document.getElementById(id);
+  const statusEl  = $('status');
+  const roundEl   = $('round-val');
+  const bestEl    = $('best-val');
+  const startBtn  = $('start-btn');
+  const overlay   = $('overlay');
+  const ovRound   = $('ov-round');
+  const ovBest    = $('ov-best');
+  const ovPoints  = $('ov-points');
+  const ovRestart = $('ov-restart');
+  const centerDot = $('center-dot');
+  const seqPreview = null;
+
+  bestEl.textContent = best;
+
+  function setStatus(msg, cls='') {
+    statusEl.className = 'status ' + cls;
+    statusEl.textContent = msg;
+  }
+
+  function getBtn(color) { return $('btn-' + color); }
+
+  function flashColor(color, duration) {
+    return new Promise(res => {
+      const btn = getBtn(color);
+      btn.classList.add('lit-' + color);
+      playTone(color);
+      setTimeout(() => {
+        btn.classList.remove('lit-' + color);
+        setTimeout(res, FLASH_GAP);
+      }, duration);
+    });
+  }
+
+  function flashPlayer(color) {
+    return new Promise(res => {
+      const btn = getBtn(color);
+      btn.classList.add('lit-' + color);
+      playTone(color);
+      setTimeout(() => {
+        btn.classList.remove('lit-' + color);
+        res();
+      }, 250);
+    });
+  }
+
+  function pulseDot() {
+    centerDot.classList.add('pulse');
+    setTimeout(() => centerDot.classList.remove('pulse'), 350);
+  }
+
+  // Toni (Web Audio)
+  let audioCtx;
+  const FREQS = { green: 415, red: 310, yellow: 252, blue: 209 };
+  function playTone(color) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = FREQS[color];
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+  }
+  function playWrong() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.value = 120;
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.7);
+  }
+
+  async function showSequence() {
+    accepting = false;
+    setStatus('Guarda la sequenza...', 'show');
+
+    const round = sequence.length;
+    const speed = Math.max(MIN_SPEED, FLASH_DUR - (round - 1) * SPEED_STEP);
+
+    for (let i = 0; i < sequence.length; i++) {
+      await flashColor(sequence[i], speed);
+    }
+
+    playerIndex = 0;
+    accepting = true;
+    setStatus('Tocca la sequenza!', '');
+  }
+
+  function addToSequence() {
+    const c = COLORS[Math.floor(Math.random() * 4)];
+    sequence.push(c);
+    roundEl.textContent = sequence.length;
+  }
+
+  async function nextRound() {
+    addToSequence();
+    await delay(600);
+    await showSequence();
+  }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function startGame() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sequence = [];
+    playerIndex = 0;
+    accepting = false;
+    gameRunning = true;
+    sessionPoints = 0;
+    startBtn.disabled = true;
+    overlay.classList.remove('show');
+    roundEl.textContent = 0;
+    setStatus('');
+    pulseDot();
+    await delay(400);
+    await nextRound();
+  }
+
+  async function handleInput(color) {
+    if (!accepting || !gameRunning) return;
+    accepting = false;
+
+    await flashPlayer(color);
+
+    if (color !== sequence[playerIndex]) {
+      // SBAGLIATO
+      gameRunning = false;
+      playWrong();
+      setStatus('Sbagliato! Dovevi: ' + sequence[playerIndex].toUpperCase(), 'wrong');
+      // Flash rosso su tutta la board
+      for (const c of COLORS) getBtn(c).classList.add('lit-red');
+      await delay(700);
+      for (const c of COLORS) getBtn(c).classList.remove('lit-red');
+
+      const score = sequence.length - 1;
+      if (score > best) {
+        best = score;
+        localStorage.setItem('simon-best', best);
+        bestEl.textContent = best;
+      }
+      ovRound.textContent = score;
+      ovBest.textContent = score >= best ? '🏆 Nuovo record!' : 'Record: ' + best;
+      // Mostra punti guadagnati
+      ovPoints.textContent = sessionPoints > 0 ? '+' + sessionPoints + ' pts guadagnati' : '';
+      overlay.classList.add('show');
+      startBtn.disabled = false;
+      return;
+    }
+
+    playerIndex++;
+
+    if (playerIndex === sequence.length) {
+      // Sequenza completata! — guadagna punti
+      accepting = false;
+      pulseDot();
+      const round = sequence.length;
+      // 1 pt per round, bonus +2 ogni 5 round
+      const earned = 1 + (round % 5 === 0 ? 4 : 0);
+      sessionPoints += earned;
+      addPoints(earned);
+      setStatus('Corretto! +' + earned + ' pt' + (round % 5 === 0 ? ' 🎉' : ''), 'ok');
+      await delay(900);
+      await nextRound();
+    } else {
+      accepting = true;
+    }
+  }
+
+  // Click / touch sui bottoni
+  COLORS.forEach(color => {
+    const btn = getBtn(color);
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); handleInput(color); });
+  });
+
+  startBtn.addEventListener('click', startGame);
+  ovRestart.addEventListener('click', startGame);
+</script>
+</body>
+</html>
