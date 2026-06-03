@@ -406,56 +406,74 @@
     setTimeout(() => centerDot.classList.remove('pulse'), 350);
   }
 
-  // Audio — inizializzato subito, sbloccato al primo tocco
+  // ── AUDIO ───────────────────────────────────────────────────────────────
+  // Tutti i suoni vengono sintetizzati UNA VOLTA al caricamento e salvati
+  // come AudioBuffer. Al momento del tocco si fa solo .start() → zero latenza.
+
   let audioCtx = null;
+  const audioBuffers = {}; // { green, red, yellow, blue, wrong }
+
   const FREQS = { green: 415, red: 310, yellow: 252, blue: 209 };
+  const SAMPLE_RATE = 22050;
+  const TONE_DUR    = 0.38; // secondi
+  const WRONG_DUR   = 0.65;
+
+  function renderTone(freq, duration, type = 'sine') {
+    const frames = Math.ceil(SAMPLE_RATE * duration);
+    const buf = audioCtx.createBuffer(1, frames, SAMPLE_RATE);
+    const data = buf.getChannelData(0);
+    const twopi = 2 * Math.PI;
+    const attack  = Math.ceil(SAMPLE_RATE * 0.01);
+    const release = Math.ceil(SAMPLE_RATE * 0.15);
+    for (let i = 0; i < frames; i++) {
+      let s;
+      const t = i / SAMPLE_RATE;
+      if (type === 'sine') {
+        s = Math.sin(twopi * freq * t);
+      } else {
+        // sawtooth
+        s = 2 * ((freq * t) % 1) - 1;
+      }
+      // envelope: attack / sustain / release
+      let env = 0.25;
+      if (i < attack) env = 0.25 * (i / attack);
+      else if (i > frames - release) env = 0.25 * ((frames - i) / release);
+      data[i] = s * env;
+    }
+    return buf;
+  }
 
   function initAudio() {
     if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Sblocca AudioContext su iOS con un buffer silenzioso
-    const buf = audioCtx.createBuffer(1, 1, 22050);
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+    // Pre-renderizza tutti i suoni
+    for (const color of ['green', 'red', 'yellow', 'blue']) {
+      audioBuffers[color] = renderTone(FREQS[color], TONE_DUR, 'sine');
+    }
+    audioBuffers.wrong = renderTone(110, WRONG_DUR, 'sawtooth');
+    // Unlock iOS con buffer silenzioso
+    const silent = audioCtx.createBuffer(1, 1, SAMPLE_RATE);
     const src = audioCtx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = silent;
     src.connect(audioCtx.destination);
     src.start(0);
   }
 
-  // Sblocca al primo tocco ovunque sulla pagina
   document.addEventListener('touchstart', initAudio, { once: true, passive: true });
   document.addEventListener('mousedown',  initAudio, { once: true });
 
-  function playTone(color) {
-    if (!audioCtx) return;
+  function playBuffer(name) {
+    if (!audioCtx || !audioBuffers[name]) return;
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = FREQS[color];
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-    osc.start(now);
-    osc.stop(now + 0.35);
+    const src = audioCtx.createBufferSource();
+    src.buffer = audioBuffers[name];
+    src.connect(audioCtx.destination);
+    src.start(0); // istantaneo, nessun calcolo in tempo reale
   }
 
-  function playWrong() {
-    if (!audioCtx) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.value = 120;
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-    osc.start(now);
-    osc.stop(now + 0.6);
-  }
+  function playTone(color)  { playBuffer(color); }
+  function playWrong()      { playBuffer('wrong'); }
+  // ────────────────────────────────────────────────────────────────────────
 
   async function showSequence() {
     accepting = false;
@@ -488,8 +506,7 @@
   function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   async function startGame() {
-    initAudio();
-    sequence = [];
+    initAudio();    sequence = [];
     playerIndex = 0;
     accepting = false;
     gameRunning = true;
