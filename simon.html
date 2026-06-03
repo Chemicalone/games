@@ -124,6 +124,9 @@
     cursor: pointer;
     transition: filter 0.08s, transform 0.08s;
     border: 3px solid #0004;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .btn-green  { top: 1%; left: 51%; border-radius: 0 100% 0 0; background: #1a6b3c; }
@@ -403,30 +406,55 @@
     setTimeout(() => centerDot.classList.remove('pulse'), 350);
   }
 
-  // Toni (Web Audio)
-  let audioCtx;
+  // Audio — inizializzato subito, sbloccato al primo tocco
+  let audioCtx = null;
   const FREQS = { green: 415, red: 310, yellow: 252, blue: 209 };
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Sblocca AudioContext su iOS con un buffer silenzioso
+    const buf = audioCtx.createBuffer(1, 1, 22050);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  }
+
+  // Sblocca al primo tocco ovunque sulla pagina
+  document.addEventListener('touchstart', initAudio, { once: true, passive: true });
+  document.addEventListener('mousedown',  initAudio, { once: true });
+
   function playTone(color) {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
     osc.type = 'sine';
     osc.frequency.value = FREQS[color];
-    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.start(now);
+    osc.stop(now + 0.35);
   }
+
   function playWrong() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
     osc.type = 'sawtooth';
     osc.frequency.value = 120;
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.7);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc.start(now);
+    osc.stop(now + 0.6);
   }
 
   async function showSequence() {
@@ -460,7 +488,7 @@
   function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   async function startGame() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    initAudio();
     sequence = [];
     playerIndex = 0;
     accepting = false;
@@ -525,10 +553,20 @@
     }
   }
 
-  // Click / touch sui bottoni
+  // Input — touchstart su mobile (niente delay), pointerdown su desktop
   COLORS.forEach(color => {
     const btn = getBtn(color);
-    btn.addEventListener('pointerdown', e => { e.preventDefault(); handleInput(color); });
+    let touched = false;
+    btn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      touched = true;
+      handleInput(color);
+    }, { passive: false });
+    btn.addEventListener('pointerdown', e => {
+      if (touched) { touched = false; return; } // evita doppio fire
+      e.preventDefault();
+      handleInput(color);
+    });
   });
 
   startBtn.addEventListener('click', startGame);
