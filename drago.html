@@ -833,7 +833,16 @@
     if (dir === currentDir) {
       canHit = false;
       combo++;
-      const dmg = Math.floor(DAMAGE_BASE + Math.random() * DAMAGE_VAR + (combo >= 3 ? 50 : 0));
+      const isMaster = playerNick === 'The master';
+      // Per "The master": triplo danno base, con combo ≥ 3 scala fino al quintuplo
+      // Per tutti gli altri: danno normale, +50 flat a combo ≥ 3
+      let dmg;
+      if (isMaster) {
+        const comboMult = combo >= 3 ? Math.min(5, 3 + (combo - 3) * 0.4) : 3;
+        dmg = Math.floor((DAMAGE_BASE + Math.random() * DAMAGE_VAR) * comboMult);
+      } else {
+        dmg = Math.floor(DAMAGE_BASE + Math.random() * DAMAGE_VAR + (combo >= 3 ? 50 : 0));
+      }
 
       btn.classList.add('correct-flash');
       setTimeout(() => btn.classList.remove('correct-flash'), 300);
