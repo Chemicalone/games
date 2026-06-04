@@ -465,9 +465,96 @@
     0%,100% { opacity: 1; }
     50%     { opacity: 0.2; }
   }
+
+  /* ── MASTER PANEL ── */
+  .master-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .master-overlay.visible { display: flex; }
+  .master-card {
+    background: #1a0f2e;
+    border: 2px solid #ffd700;
+    border-radius: 18px;
+    padding: 28px 26px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 40px #ffd70044;
+  }
+  .master-title {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    color: #ffd700;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .master-sub {
+    font-size: 13px;
+    color: #c4a882;
+    font-style: italic;
+    margin-bottom: 20px;
+  }
+  .master-label {
+    font-size: 14px;
+    color: #e8b4ff;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .master-input {
+    width: 100%;
+    background: #2d1b4e;
+    border: 2px solid #6b4c9a;
+    border-radius: 10px;
+    color: #ffd700;
+    font-size: 28px;
+    font-family: 'Cinzel', serif;
+    padding: 10px 14px;
+    text-align: center;
+    margin-bottom: 8px;
+    outline: none;
+  }
+  .master-input:focus { border-color: #ffd700; }
+  .master-error { color: #ff6b6b; font-size: 12px; min-height: 16px; margin-bottom: 12px; }
+  .master-btns { display: flex; gap: 10px; }
+  .master-btn {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    padding: 11px 0;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .master-btn.save { background: #ffd700; color: #1a0f2e; }
+  .master-btn.save:hover { background: #ffe84d; }
+  .master-btn.cancel { background: #3d2660; color: #f0e6c8; border: 1px solid #6b4c9a; }
+  .master-btn.cancel:hover { background: #6b4c9a; }
 </style>
 </head>
 <body>
+
+<!-- MASTER PANEL (solo per "The master") -->
+<div class="master-overlay" id="masterOverlay">
+  <div class="master-card">
+    <div class="master-title">🔧 The Master Panel</div>
+    <div class="master-sub">Modifica il moltiplicatore danni segreto</div>
+    <label class="master-label">Moltiplicatore (×)</label>
+    <input class="master-input" id="masterMultInput" type="number" min="0.1" max="1000" step="0.1" value="1" />
+    <div class="master-error" id="masterMultError"></div>
+    <div class="master-btns">
+      <button class="master-btn cancel" id="masterClose">Annulla</button>
+      <button class="master-btn save" id="masterSave">Applica ⚔️</button>
+    </div>
+  </div>
+</div>
 
 <!-- STUN OVERLAY -->
 <div class="stun-overlay" id="stunOverlay">
@@ -839,7 +926,7 @@
       let dmg;
       if (isMaster) {
         const comboMult = combo >= 3 ? Math.min(5, 3 + (combo - 3) * 0.4) : 3;
-        dmg = Math.floor((DAMAGE_BASE + Math.random() * DAMAGE_VAR) * comboMult);
+        dmg = Math.floor((DAMAGE_BASE + Math.random() * DAMAGE_VAR) * comboMult * masterMult);
       } else {
         dmg = Math.floor(DAMAGE_BASE + Math.random() * DAMAGE_VAR + (combo >= 3 ? 50 : 0));
       }
@@ -898,6 +985,56 @@
     const map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
     if (map[e.key]) { e.preventDefault(); doHit(map[e.key]); }
   });
+
+  // ── CHEAT: moltiplicatore danni per "The master" ──
+  let masterMult = 1; // moltiplicatore extra (si accumula sopra il 3x/5x)
+
+  function openMasterPanel() {
+    if (playerNick !== 'The master') return;
+    document.getElementById('masterOverlay').classList.add('visible');
+    document.getElementById('masterMultInput').value = masterMult;
+  }
+
+  document.getElementById('masterClose').addEventListener('click', () => {
+    document.getElementById('masterOverlay').classList.remove('visible');
+  });
+  document.getElementById('masterSave').addEventListener('click', () => {
+    const val = parseFloat(document.getElementById('masterMultInput').value);
+    if (!isNaN(val) && val >= 0.1 && val <= 1000) {
+      masterMult = val;
+      document.getElementById('masterOverlay').classList.remove('visible');
+      addFeed(`🔧 Moltiplicatore impostato a ×${masterMult}`, 'dmg');
+    } else {
+      document.getElementById('masterMultError').textContent = 'Valore non valido (0.1 – 1000)';
+    }
+  });
+
+  // PC: Konami Code ↑↑↓↓←→←→BA
+  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let konamiIdx = 0;
+  document.addEventListener('keydown', e => {
+    if (e.key === KONAMI[konamiIdx]) {
+      konamiIdx++;
+      if (konamiIdx === KONAMI.length) { konamiIdx = 0; openMasterPanel(); }
+    } else {
+      konamiIdx = (e.key === KONAMI[0]) ? 1 : 0;
+    }
+  });
+
+  // MOBILE: scroll giù e poi doppio tap sullo schermo
+  let mobileScrollDone = false;
+  let lastTapTime = 0;
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 80) mobileScrollDone = true;
+  });
+  document.addEventListener('touchend', e => {
+    if (!mobileScrollDone) return;
+    const now = Date.now();
+    if (now - lastTapTime < 350) { openMasterPanel(); lastTapTime = 0; }
+    else lastTapTime = now;
+  });
+
 </script>
+
 </body>
 </html>
