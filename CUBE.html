@@ -37,6 +37,56 @@
       width: 100%;
       height: 100%;
     }
+
+    /* ── HUB OVERLAY ── */
+    #pts-display {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid #333;
+      color: #aaa;
+      font-family: monospace;
+      font-size: 13px;
+      letter-spacing: 2px;
+      padding: 6px 14px;
+      pointer-events: none;
+    }
+    #pts-display span { color: #fff; }
+    #pts-flash {
+      position: fixed;
+      bottom: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: monospace;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: #aaa;
+      opacity: 0;
+      transition: opacity 0.4s;
+      z-index: 9999;
+      pointer-events: none;
+      background: rgba(0,0,0,0.6);
+      padding: 4px 10px;
+    }
+    #home-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 9999;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid #333;
+      color: #aaa;
+      font-family: monospace;
+      font-size: 13px;
+      letter-spacing: 2px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    #home-btn:hover { border-color: #aaa; color: #fff; }
     .screen {
       display: flex;
       flex-direction: column;
@@ -513,5 +563,75 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
     };
     run().catch(handleError);
   </script>
+
+<!-- ── HUB OVERLAY ── -->
+<button id="home-btn" onclick="window.location.href='index.html'">← hub</button>
+<div id="pts-display">pts: <span id="pts-count">0</span></div>
+<div id="pts-flash">+1</div>
+
+<script>
+(function(){
+  const POINTS_KEY = 'campo-points';
+  const INTERVAL_MS = 10000; // +1 punto ogni 10 secondi di gioco
+  const POINTS_PER_TICK = 1;
+
+  let sessionPts = 0;
+  const countEl = document.getElementById('pts-count');
+  const flashEl = document.getElementById('pts-flash');
+
+  function getTotal(){ return parseInt(localStorage.getItem(POINTS_KEY)||'0'); }
+
+  function updateDisplay(){
+    countEl.textContent = getTotal() + sessionPts;
+  }
+
+  let flashTimer = null;
+  function flash(val){
+    flashEl.textContent = '+' + val;
+    flashEl.style.opacity = '1';
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(()=>{ flashEl.style.opacity='0'; }, 1200);
+  }
+
+  function awardPoints(){
+    sessionPts += POINTS_PER_TICK;
+    const newTotal = getTotal() + POINTS_PER_TICK;
+    localStorage.setItem(POINTS_KEY, newTotal);
+    sessionPts = 0;
+    updateDisplay();
+    flash(POINTS_PER_TICK);
+  }
+
+  updateDisplay();
+
+  // Inizia a contare dopo che il gioco è partito (aspetta il progetto caricato)
+  let interval = null;
+  const startInterval = () => {
+    if(interval) return;
+    interval = setInterval(awardPoints, INTERVAL_MS);
+  };
+
+  // Aspetta che scaffolding sia pronto e il progetto avviato
+  const tryHook = () => {
+    if(window.scaffolding){
+      window.scaffolding.addEventListener('PROJECT_RUN_START', startInterval);
+      // Se già in esecuzione al momento dell'hook
+      startInterval();
+    } else {
+      setTimeout(tryHook, 300);
+    }
+  };
+  tryHook();
+
+  // Salva i punti anche se si chiude la pagina prima del prossimo tick
+  window.addEventListener('beforeunload', ()=>{
+    if(sessionPts > 0){
+      const newTotal = getTotal() + sessionPts;
+      localStorage.setItem(POINTS_KEY, newTotal);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
