@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PVP – Scheda del personaggio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16100c;--leather:#2b1c12;--leather2:#3a2718;--parch:#e6d5ab;--parch2:#d4bd88;--gold:#c9a227;--blood:#8f1d1d;--text:#2a1b0e;--ok:#2f6b3a;
+--head:'Cinzel','Trajan Pro',Georgia,serif;--body:'IM Fell English',Georgia,'Times New Roman',serif}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--body);font-size:18px;color:var(--text);
+background:radial-gradient(ellipse at top,#3d2a1a 0%,var(--ink) 70%) fixed;min-height:100vh;padding:20px 14px 60px}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-family:var(--head);color:var(--gold);text-align:center;font-size:clamp(26px,5vw,42px);letter-spacing:.06em;margin:6px 0 4px;text-shadow:0 2px 0 #000}
+.sub{text-align:center;color:var(--parch2);font-style:italic;margin:0 0 20px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}
+button,.btn{font-family:var(--head);font-weight:700;font-size:14px;cursor:pointer;border:2px solid var(--gold);background:var(--leather2);color:var(--parch);padding:10px 18px;border-radius:3px;letter-spacing:.04em}
+button:hover,.btn:hover{background:var(--blood);color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn.main{background:var(--blood);border-color:var(--gold);color:#fff}
+.btn.main:hover{background:#b02727}
+.sheet{background:linear-gradient(var(--parch),var(--parch2));border:3px solid var(--gold);border-radius:4px;padding:20px;margin-bottom:20px;box-shadow:0 0 0 6px var(--leather),0 10px 30px #000a}
+h2{font-family:var(--head);margin:0 0 14px;font-size:20px;border-bottom:2px solid var(--blood);padding-bottom:6px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+h2 small{font-family:var(--body);font-size:16px;font-weight:400;color:var(--blood)}
+.top{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+.top label{flex:1;min-width:220px;font-family:var(--head);font-size:13px}
+input[type=text]{width:100%;font-family:var(--head);font-size:24px;background:transparent;border:0;border-bottom:2px solid var(--text);padding:4px 2px;color:var(--text)}
+.hp{text-align:center;font-family:var(--head);border:3px solid var(--blood);border-radius:50% 50% 50% 50%/60% 60% 40% 40%;width:96px;height:96px;display:flex;flex-direction:column;justify-content:center;background:#f3e6c4}
+.hp b{font-size:32px;color:var(--blood);line-height:1}.hp span{font-size:11px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:14px}
+.stat{text-align:center;background:var(--leather);color:var(--parch);border:2px solid var(--gold);border-radius:6px;padding:10px 6px 12px}
+.stat .n{font-family:var(--head);font-size:13px}
+.d20{width:84px;height:92px;margin:6px auto;background:var(--gold);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center}
+.d20 div{width:78px;height:86px;background:var(--ink);clip-path:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.d20 b{font-family:var(--head);font-size:30px;line-height:1;color:var(--parch)}
+.d20 i{font-size:13px;color:var(--gold)}
+.ctl{display:flex;justify-content:center;gap:8px;align-items:center}
+.ctl button{width:34px;height:34px;padding:0;font-size:20px;line-height:1}
+button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:var(--leather2)}
+.cost{font-size:14px;color:var(--parch2);margin-top:4px}
+.moves{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.move{display:flex;gap:10px;align-items:center;text-align:left;font-family:var(--body);font-weight:400;font-size:17px;background:#f3e6c4;color:var(--text);border:2px solid var(--parch2);padding:8px 10px;letter-spacing:0}
+.move:hover{background:#f3e6c4;color:var(--text);border-color:var(--blood)}
+.move .ic{font-size:26px}.move .c{margin-left:auto;font-family:var(--head);font-size:13px;background:var(--text);color:var(--parch);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.move.on{background:var(--leather);color:var(--parch);border-color:var(--gold);box-shadow:inset 0 0 0 2px var(--blood)}
+.move.on:hover{border-color:var(--gold)}
+.move.on .c{background:var(--gold);color:var(--ink)}
+.move:disabled{opacity:.4}
+.bad{color:var(--blood);font-weight:700}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--parch);border:2px solid var(--gold);padding:12px 20px;border-radius:3px;font-family:var(--head);font-size:14px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .25s}
+#toast.show{opacity:1}#toast.err{border-color:#e05555;color:#ffb3b3}
+.fighters{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.fc{background:var(--leather);color:var(--parch);border:2px solid var(--leather2);border-radius:6px;padding:12px;font-family:var(--head);text-align:center;min-height:118px}
+.fc.act{border-color:var(--gold);box-shadow:0 0 0 3px var(--blood)}.fc.ko{opacity:.5}
+.hpb{height:14px;background:#0008;border:1px solid var(--gold);border-radius:7px;margin:8px 0 4px;overflow:hidden}
+.hpb i{display:block;height:100%;background:var(--blood);transition:width .4s}
+.hpn{font-size:14px}
+.chip{display:inline-block;margin:6px 3px 0;padding:2px 8px;border:1px solid var(--gold);border-radius:10px;font-size:12px}
+.slot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.slot span{flex:1;min-width:200px}
+#turn{margin:6px 0 12px;font-size:19px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.move .dm{margin-left:auto;font-size:13px;font-family:var(--head)}
+#log{margin-top:14px;max-height:240px;overflow:auto;border-top:2px solid var(--blood);padding-top:8px}#log p{margin:4px 0;font-size:16px}
+@media (max-width:560px){.fighters{grid-template-columns:1fr}}
+.cr[hidden]{display:none}
+#onl[hidden]{display:none}
+#onl .slot{margin-bottom:8px}#onl hr{border:0;border-top:2px solid var(--blood);margin:14px 0}
+#kw{width:230px;flex:none;font-size:20px}
+#netbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--blood);color:#fff;font-family:var(--head);font-size:14px;padding:8px 12px;border-radius:3px;margin-bottom:10px}
+#netbar:empty{display:none}
+.mw{display:block}.mw .move{width:100%;height:100%}
+#tip{position:fixed;z-index:50;max-width:260px;background:var(--ink);color:var(--parch);border:2px solid var(--gold);border-radius:3px;padding:8px 12px;font-family:var(--body);font-size:16px;line-height:1.3;box-shadow:0 4px 14px #000a;opacity:0;pointer-events:none;transition:opacity .15s}
+#tip.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="cr">Scheda del personaggio</h1>
+  <p class="sub cr">Forgia il tuo eroe, salvalo sul tuo PC e riprendilo quando vuoi.</p>
+
+  <div class="bar cr">
+    <button id="bHub" onclick="location.href='index.html'">← Torna all'hub</button>
+    <button id="bNew">Nuovo personaggio</button>
+    <button id="bLoad">Carica da file</button>
+    <button id="bSave" class="btn main">Salva su PC</button>
+    <input type="file" id="file" accept=".txt,text/plain" hidden>
+    <input type="file" id="file2" accept=".txt,text/plain" hidden>
+  </div>
+
+  <section class="sheet cr">
+    <div class="top">
+      <label>Nome dell'eroe (max 9 caratteri)
+        <input type="text" id="name" maxlength="9" autocomplete="off" placeholder="Es. Thorin">
+      </label>
+      <div class="hp" title="Punti ferita = Costituzione + 70"><b id="hp">42</b><span>Punti ferita</span></div>
+    </div>
+  </section>
+
+  <section class="sheet cr">
+    <h2>Caratteristiche <small id="statInfo"></small></h2>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="sheet cr">
+    <h2>Mosse <small id="moveInfo"></small></h2>
+    <div class="moves" id="moves"></div>
+  </section>
+
+  <section class="sheet" id="arena">
+    <h2>Arena <small>Combattimento locale e online</small></h2>
+    <div id="onl">
+      <div class="slot"><span><b>Combattimento online</b>: voi due inserite la stessa parola chiave. Si usa la scheda attuale.</span>
+        <input type="text" id="kw" maxlength="30" autocomplete="off" placeholder="Parola chiave">
+        <button class="btn main" id="bJoin">Entra nella stanza</button></div>
+      <hr>
+    </div>
+    <div id="setup"></div>
+    <div id="fight" hidden>
+      <div id="netbar"></div>
+      <div class="fighters" id="fighters"></div>
+      <div id="turn"></div>
+      <div class="moves" id="bmoves"></div>
+      <div id="log"></div>
+    </div>
+  </section>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+const STATS=[["forza","Forza","FOR"],["des","Destrezza","DES"],["costituzione","Costituzione","COS"],["intelligenza","Intelligenza","INT"],["saggezza","Saggezza","SAG"],["carisma","Carisma","CAR"]];
+const MOVES=[["fireball",7,"🔥"],["dardo_incantato",2,"✨"],["raggio_rovente",7,"☀️"],["dito_della_morte",8,"💀"],["fulmine",6,"⚡"],["punizione_divina",4,"⚔️"],["attacco_furtivo",6,"🗡️"],["Ira",5,"😡"],["colpo_extra",5,"💥"],["Raffica_di_colpi",5,"👊"],["spingere",1,"🖐️"],["aiutare",1,"🤝"],["maleficio",4,"🌑"],["ragnatela",6,"🕸️"],["colpo_preciso",2,"🏹"],["cura_ferite",3,"❤️"],["parola_guaritrice",4,"🙏"],["mani_imposte",3,"🙌"]];
+const MAX_STAT_POINTS=27, MAX_MOVE_POINTS=30, MAX_SLOTS=6;
+const cost=s=>s<=13?s-8:(s===14?7:9);
+const fresh=()=>({name:"",forza:8,des:8,costituzione:8,intelligenza:8,saggezza:8,carisma:8,moves:new Set()});
+let st=fresh();
+const $=id=>document.getElementById(id);
+
+function validName(n){
+  if(!n||n.length>9||/[ .]$/.test(n)||/[<>:"\/\\|?*\x00-\x1f]/.test(n))return false;
+  return !/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(n);
+}
+function toast(msg,err){const t=$("toast");t.textContent=msg;t.className="show"+(err?" err":"");clearTimeout(toast.t);toast.t=setTimeout(()=>t.className="",3500)}
+const statPoints=()=>STATS.reduce((a,s)=>a+cost(st[s[0]]),0);
+const movePoints=()=>[...st.moves].reduce((a,i)=>a+MOVES[i][1],0);
+const modStr=v=>{const m=Math.floor((v-10)/2);return (m>=0?"+":"")+m};
+const pretty=n=>n.replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
+
+function render(){
+  const sp=statPoints(), mp=movePoints(), left=MAX_STAT_POINTS-sp;
+  $("hp").textContent=st.costituzione+70;
+  $("statInfo").innerHTML=`Punti rimasti: <b>${left}/${MAX_STAT_POINTS}</b>`;
+  $("stats").innerHTML=STATS.map(([k,full,ab])=>{
+    const v=st[k], up=v<15&&cost(v+1)-cost(v)<=left, down=v>8;
+    return `<div class="stat"><div class="n">${full}</div>
+    <div class="d20"><div><b>${v}</b><i>${modStr(v)}</i></div></div>
+    <div class="ctl"><button data-s="${k}" data-d="-1" ${down?"":"disabled"} aria-label="Riduci ${full}">−</button>
+    <button data-s="${k}" data-d="1" ${up?"":"disabled"} aria-label="Aumenta ${full}">+</button></div>
+    <div class="cost">Costo: ${cost(v)}</div></div>`}).join("");
+  const full=st.moves.size>=MAX_SLOTS;
+  $("moveInfo").innerHTML=`Punti: <b class="${mp>MAX_MOVE_POINTS?"bad":""}">${mp}/${MAX_MOVE_POINTS}</b> · Slot: <b>${st.moves.size}/${MAX_SLOTS}</b>`;
+  $("moves").innerHTML=MOVES.map(([n,c,ic],i)=>{
+    const on=st.moves.has(i), blocked=!on&&(full||mp+c>MAX_MOVE_POINTS);
+    return `<div class="mw" data-tip="${esc(moveDesc(n)+(blocked?" (Non selezionabile: slot o punti insufficienti.)":""))}"><button class="move ${on?"on":""}" data-m="${i}" ${blocked?"disabled":""} aria-pressed="${on}">
+    <span class="ic">${ic}</span><span>${pretty(n)}</span><span class="c">${c}</span></button></div>`}).join("");
+}
+
+/* Descrizioni delle mosse (tooltip nella scelta delle mosse) */
+const SPEC_DESC={
+  spingere:"L'avversario ha svantaggio ai tiri per 2 turni (due dadi, vale il peggiore).",
+  aiutare:"Tu hai vantaggio ai tuoi tiri per 2 turni (due dadi, vale il migliore).",
+  ragnatela:"L'avversario è rallentato per 3 turni: tu agisci sempre per primo.",
+  maleficio:"L'avversario subisce 1d6 di danno a turno per 4 turni.",
+  Ira:"Per 3 turni il tuo danno è moltiplicato per 1,5 (sul totale dado + bonus)."
+};
+function moveDesc(n){
+  const sn=k=>STATS.find(s=>s[0]===k)[1];
+  if(DMG[n]){const[k,a,f]=DMG[n];return `Danno: ${a}d${f} + bonus di ${sn(k)}.`}
+  if(HEAL[n]){const[k,a,f]=HEAL[n];return `Cura: ${a}d${f} + bonus di ${sn(k)}. Non supera i PF massimi.`}
+  return SPEC_DESC[n]||"";
+}
+const tip=document.createElement("div");tip.id="tip";tip.setAttribute("role","tooltip");document.body.appendChild(tip);
+function showTip(w,x,y){
+  tip.textContent=w.dataset.tip;tip.classList.add("show");
+  const r=tip.getBoundingClientRect();
+  tip.style.left=Math.max(8,Math.min(x+14,innerWidth-r.width-8))+"px";
+  tip.style.top=(y+18+r.height>innerHeight?y-r.height-12:y+18)+"px";
+}
+const hideTip=()=>tip.classList.remove("show");
+$("moves").addEventListener("mousemove",e=>{const w=e.target.closest(".mw");w?showTip(w,e.clientX,e.clientY):hideTip()});
+$("moves").addEventListener("mouseleave",hideTip);
+$("moves").addEventListener("focusin",e=>{const w=e.target.closest(".mw");if(w){const r=w.getBoundingClientRect();showTip(w,r.left,r.bottom-18)}});
+$("moves").addEventListener("focusout",hideTip);
+window.addEventListener("scroll",hideTip,{passive:true});
+
+$("stats").onclick=e=>{const b=e.target.closest("button");if(!b||b.disabled)return;st[b.dataset.s]+=+b.dataset.d;render()};
+$("moves").onclick=e=>{const b=e.target.closest("button");if(!b||b.disabled)return;const i=+b.dataset.m;st.moves.has(i)?st.moves.delete(i):st.moves.add(i);render()};
+$("name").oninput=e=>{st.name=e.target.value};
+$("bNew").onclick=()=>{if(confirm("Vuoi ricominciare da un personaggio vuoto?")){st=fresh();$("name").value="";render()}};
+
+$("bSave").onclick=()=>{
+  if(!validName(st.name))return toast("Inserisci un nome valido (1-9 caratteri, senza simboli come / \\ : * ? \" < > |).",true);
+  const lines=["PVP_CHARACTER 1","name="+st.name,...STATS.map(([k])=>k+"="+st[k]),"HP="+(st.costituzione+70),
+    ...[...st.moves].sort((a,b)=>a-b).map(i=>"move="+MOVES[i][0])];
+  const blob=new Blob([lines.join("\n")+"\n"],{type:"text/plain"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=st.name+".txt";
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("Personaggio salvato come "+st.name+".txt");
+};
+
+$("bLoad").onclick=()=>$("file").click();
+$("file").onchange=e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{st=parse(r.result);$("name").value=st.name;render();toast("Personaggio "+st.name+" caricato.")}catch(err){toast(err.message,true)}};
+  r.onerror=()=>toast("Impossibile leggere il file.",true);
+  r.readAsText(f);
+};
+
+function parse(text){
+  const L=text.split(/\r?\n/);
+  while(L.length&&L[L.length-1].trim()==="")L.pop();
+  if(L[0]!=="PVP_CHARACTER 1")throw new Error("File non valido: intestazione non riconosciuta.");
+  const get=(i,key)=>{const l=L[i]||"";if(!l.startsWith(key+"="))throw new Error("File non valido: manca il campo "+key+".");return l.slice(key.length+1)};
+  const p=fresh();
+  p.name=get(1,"name");
+  if(!validName(p.name))throw new Error("File non valido: nome non ammesso.");
+  STATS.forEach(([k],j)=>{
+    const raw=get(2+j,k);
+    if(!/^\d+$/.test(raw.trim()))throw new Error("File non valido: "+k+" non è un numero.");
+    const v=+raw;
+    if(v<8||v>15)throw new Error("File non valido: "+k+" fuori dai limiti (8-15).");
+    p[k]=v;
+  });
+  const total=STATS.reduce((a,s)=>a+cost(p[s[0]]),0);
+  if(total>MAX_STAT_POINTS)throw new Error("File non valido: budget delle caratteristiche superato.");
+  {const hp=+get(8,"HP");if(hp!==p.costituzione+70&&hp!==p.costituzione+34&&hp!==p.carisma+34)throw new Error("File non valido: punti ferita non coerenti.");}
+  let pts=0;
+  for(let i=9;i<L.length;i++){
+    if(!L[i].startsWith("move="))throw new Error("File non valido: sezione mosse errata.");
+    const mn=L[i].slice(5).trim().replace(/^ragio_rovente$/,"raggio_rovente");
+    const idx=MOVES.findIndex(m=>m[0]===mn);
+    if(idx<0)throw new Error("File non valido: mossa sconosciuta.");
+    if(p.moves.has(idx))throw new Error("File non valido: mossa duplicata.");
+    if(p.moves.size>=MAX_SLOTS)throw new Error("File non valido: più di 6 mosse.");
+    p.moves.add(idx);pts+=MOVES[idx][1];
+  }
+  if(pts>MAX_MOVE_POINTS)throw new Error("File non valido: budget delle mosse superiore a 30.");
+  return p;
+}
+/* ===== Arena: motore di combattimento locale ===== */
+const DMG={dardo_incantato:["intelligenza",1,6],colpo_preciso:["des",1,6],punizione_divina:["carisma",1,8],colpo_extra:["forza",1,10],Raffica_di_colpi:["forza",2,4],attacco_furtivo:["des",2,6],fulmine:["intelligenza",1,12],fireball:["intelligenza",2,8],raggio_rovente:["carisma",2,8],dito_della_morte:["saggezza",2,10]};
+const HEAL={cura_ferite:["saggezza",1,6],mani_imposte:["carisma",1,6],parola_guaritrice:["saggezza",1,8]};
+const SPEC={spingere:["svantaggio",2,1],aiutare:["vantaggio",2,0],ragnatela:["lento",3,1],maleficio:["male",4,1],Ira:["ira",3,0]}; // [effetto, azioni, su avversario?]
+const FX={svantaggio:"Svantaggio",vantaggio:"Vantaggio",lento:"Rallentato",male:"Maleficio",ira:"Ira"};
+const MI=Object.fromEntries(MOVES.map(m=>[m[0],m[2]]));
+const bonus=v=>Math.floor((v-8)/2), die=f=>1+Math.floor(Math.random()*f);
+const dice=(n,f)=>{let t=0;for(let i=0;i<n;i++)t+=die(f);return t};
+const esc=t=>String(t).replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
+let P=[null,null],B=null,slot=0;
+const showCreation=on=>{document.querySelectorAll(".cr").forEach(el=>el.hidden=!on);window.scrollTo(0,0)};
+
+function roll(n,f,adv,dis){            // vantaggio/svantaggio: si tira l'intero lancio due volte
+  const a=dice(n,f);
+  if(adv===dis)return{t:a,x:n+"d"+f+" = "+a};   // nessuno dei due, oppure si annullano
+  const b=dice(n,f),t=adv?Math.max(a,b):Math.min(a,b);
+  return{t,x:n+"d"+f+": "+a+" e "+b+", "+(adv?"vantaggio":"svantaggio")+" → "+t};
+}
+const mkFighter=p=>({name:p.name,s:Object.fromEntries(STATS.map(([k])=>[k,p[k]])),max:p.costituzione+70,hp:p.costituzione+70,
+  mv:[...p.moves].sort((a,b)=>a-b).map(i=>MOVES[i][0]),fx:{svantaggio:0,vantaggio:0,lento:0,male:0,ira:0}});
+const say=t=>{B.log.unshift(t);if(B.log.length>60)B.log.length=60};
+let QUIET=false,ON=null;                 // QUIET: calcola senza disegnare (transazioni online); ON: {seat,rm,gone} se si gioca online
+const draw=()=>{if(!QUIET)renderB()};
+
+function startRound(){
+  B.round++;
+  const[a,b]=B.f,sa=a.fx.lento>0,sb=b.fx.lento>0;let first,why;
+  if(sa!==sb){first=sa?1:0;why=B.f[1-first].name+" è rallentato"}
+  else if(a.s.des!==b.s.des){first=a.s.des>b.s.des?0:1;why="Destrezza più alta"}
+  else{let x,y;do{x=die(20);y=die(20)}while(x===y);first=x>y?0:1;why="Destrezza pari, d20: "+x+" contro "+y}
+  B.order=[first,1-first];B.pos=0;
+  say("Round "+B.round+": agisce per primo "+B.f[first].name+" ("+why+").");
+  beginAction();
+}
+function beginAction(){                 // gli effetti si scalano sulle azioni di chi li subisce
+  const i=B.order[B.pos],f=B.f[i];B.act={};
+  for(const k in f.fx){if(f.wait===k){f.wait=null;B.act[k]=false;continue}B.act[k]=f.fx[k]>0;if(f.fx[k]>0)f.fx[k]--}
+  if(B.act.male){const t=die(6);f.hp=Math.max(0,f.hp-t);say(f.name+" subisce "+t+" danni dal maleficio (1d6).");if(f.hp<=0)return finish(1-i)}
+  draw();
+}
+function finish(w){B.over=w;say(B.f[w].name+" vince la battaglia!");draw()}
+function useMove(n){
+  const i=B.order[B.pos],f=B.f[i],g=B.f[1-i],a=B.act,e=DMG[n]||HEAL[n];
+  if(e){
+    const r=roll(e[1],e[2],a.vantaggio,a.svantaggio),bo=bonus(f.s[e[0]]);
+    let t=r.t+bo,x=r.x+" + "+bo;
+    if(HEAL[n]){const h=Math.min(f.max,f.hp+t)-f.hp;f.hp+=h;say(f.name+" usa "+pretty(n)+" e recupera "+h+" PF ("+x+").")}
+    else{if(a.ira){t=Math.floor(t*1.5);x+=", Ira ×1,5 → "+t}
+      g.hp=Math.max(0,g.hp-t);say(f.name+" usa "+pretty(n)+": "+t+" danni a "+g.name+" ("+x+").")}
+  }else{
+    const[k,d,opp]=SPEC[n],T=opp?g:f;T.fx[k]=d;if(n==="ragnatela"&&B.pos===0)T.wait=k; // se chi la lancia è già primo, il round in corso non conta
+    say(f.name+" usa "+pretty(n)+": "+T.name+" ha "+FX[k]+" per "+d+" azioni.");
+  }
+  if(g.hp<=0)return finish(i);
+  B.pos++;B.pos<2?beginAction():startRound();
+}
+
+function renderB(){
+  const cur=B.f[B.order[B.pos]],left=(f,i,k)=>f.fx[k]+(B.over==null&&B.order[B.pos]===i&&B.act[k]?1:0);
+  $("fighters").innerHTML=B.f.map((f,i)=>`<div class="fc${B.over==null&&B.order[B.pos]===i?" act":""}${f.hp<=0?" ko":""}"><b>${esc(f.name)}</b>${ON&&ON.seat===i?" (tu)":""}
+    <div class="hpb"><i style="width:${100*f.hp/f.max}%"></i></div><div class="hpn">${f.hp} / ${f.max} PF</div>
+    <div>${Object.keys(FX).filter(k=>left(f,i,k)>0).map(k=>`<span class="chip">${FX[k]} (${left(f,i,k)})</span>`).join("")||"&nbsp;"}</div></div>`).join("");
+  const mine=!ON||B.order[B.pos]===ON.seat;   // online: i pulsanti sono tuoi e attivi solo nel tuo turno
+  let tr;
+  if(B.over!=null){
+    tr=`<b>${esc(B.f[B.over].name)} vince!</b>`;
+    if(!ON)tr+=`<button id="bAgain">Nuova battaglia</button>`;
+    else{const me=ON.rm[ON.seat],they=ON.rm[1-ON.seat];
+      tr+=`<button id="bRematch"${me||ON.gone?" disabled":""}>${ON.gone?"L'avversario è uscito":me?"In attesa dell'avversario…":they?"Rivincita (l'avversario è pronto)":"Rivincita"}</button><button id="bLeave">Esci</button>`}
+  }else tr=`Round ${B.round}: tocca a <b>${esc(cur.name)}</b>${ON&&mine?" (è il tuo turno)":""}<button id="${ON?"bLeave":"bAgain"}">Abbandona</button>`;
+  $("turn").innerHTML=tr;
+  const my=ON?B.f[ON.seat]:cur;
+  $("bmoves").innerHTML=B.over!=null?"":my.mv.map(n=>{const e=DMG[n]||HEAL[n],lab=e?e[1]+"d"+e[2]+"+"+bonus(my.s[e[0]]):(SPEC[n][2]?"su avversario":"su di sé");
+    return `<button class="move" data-bm="${n}"${mine?"":" disabled"}><span class="ic">${MI[n]}</span><span>${pretty(n)}</span><span class="dm">${lab}</span></button>`}).join("");
+  $("log").innerHTML=B.log.map(l=>`<p>${esc(l)}</p>`).join("");
+}
+function renderSetup(){
+  $("setup").innerHTML=[0,1].map(i=>`<div class="slot"><span>Giocatore ${i+1}: <b>${P[i]?esc(P[i].name):"nessun personaggio"}</b></span>
+    <button data-use="${i}">Usa la scheda attuale</button><button data-ld="${i}">Carica da file</button></div>`).join("")
+    +`<button class="btn main" id="bGo"${P[0]&&P[1]?"":" disabled"}>Inizia battaglia</button>`;
+}
+const NET=(fn,...a)=>window.PVPNET?window.PVPNET[fn](...a):toast("Online non disponibile: Firebase non si è caricato (sei connesso a internet?).",true);
+$("kw").onkeydown=e=>{if(e.key==="Enter")NET("join",$("kw").value)};
+$("arena").onclick=e=>{
+  const b=e.target.closest("button");if(!b||b.disabled)return;const d=b.dataset;
+  if(d.use!=null){
+    if(!validName(st.name))return toast("Dai un nome valido al personaggio prima di usarlo.",true);
+    if(!st.moves.size)return toast("Scegli almeno una mossa.",true);
+    P[+d.use]={...st,moves:new Set(st.moves)};renderSetup();
+  }else if(d.ld!=null){slot=+d.ld;$("file2").click()}
+  else if(b.id==="bGo"){B={f:P.map(mkFighter),round:0,log:[],over:null};$("setup").hidden=true;$("onl").hidden=true;$("fight").hidden=false;showCreation(false);startRound()}
+  else if(d.bm){if(ON)NET("play",d.bm);else if(B.over==null)useMove(d.bm)}
+  else if(b.id==="bAgain"){B=null;$("fight").hidden=true;$("setup").hidden=false;$("onl").hidden=false;showCreation(true);renderSetup()}
+  else if(b.id==="bJoin")NET("join",$("kw").value);
+  else if(b.id==="bLeave")NET("leave");
+  else if(b.id==="bRematch")NET("rematch");
+  else if(b.id==="bClaim")NET("claim");
+};
+$("file2").onchange=e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const p=parse(r.result);if(!p.moves.size)throw new Error("Il personaggio non ha nessuna mossa.");P[slot]=p;renderSetup()}catch(err){toast(err.message,true)}};
+  r.onerror=()=>toast("Impossibile leggere il file.",true);
+  r.readAsText(f);
+};
+render();renderSetup();
+</script>
+<script type="module">
+/* ===== Online: stanze con parola chiave (Firebase Auth anonima + Firestore) ===== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+import { initializeAuth, browserSessionPersistence, signInAnonymously } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+import { getFirestore, doc, runTransaction, onSnapshot, updateDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyBMacFAK-7FAqoh3A9VBRQqjFNmXOshVck",
+  authDomain: "pvp-arena-a2adc.firebaseapp.com",
+  projectId: "pvp-arena-a2adc",
+  storageBucket: "pvp-arena-a2adc.firebasestorage.app",
+  messagingSenderId: "589262815731",
+  appId: "1:589262815731:web:fd79e42dcba3c7665c1286"
+});
+// Persistenza "di sessione": ogni scheda del browser è un utente anonimo diverso (utile per provare da soli con 2 schede)
+const auth = initializeAuth(app, { persistence: browserSessionPersistence });
+const db = getFirestore(app);
+
+let authP = null;
+const authReady = () => authP || (authP = signInAnonymously(auth).then(c => c.user.uid).catch(e => { authP = null; throw e }));
+authReady().catch(() => {});
+
+const PULSE_MS = 10000, GONE_MS = 45000, STALE_MS = 600000;
+const clone = o => JSON.parse(JSON.stringify(o));
+const toP = c => ({ ...c, moves: new Set(c.moves) });
+const msg = e => e && e.code === "permission-denied" ? "Permesso negato da Firestore: controlla le regole del database."
+  : e && String(e.code).startsWith("auth/") ? "Accesso anonimo non riuscito (" + e.code + ")."
+  : (e && e.message) || "Errore sconosciuto.";
+
+const mine = () => ({ name: st.name, ...Object.fromEntries(STATS.map(([k]) => [k, st[k]])), moves: [...st.moves].sort((a, b) => a - b) });
+
+function okChar(c) {            // stesse regole di creazione/caricamento, applicate alla scheda dell'avversario
+  if (!c || !validName(c.name)) return false;
+  let sp = 0;
+  for (const [k] of STATS) { const v = c[k]; if (!Number.isInteger(v) || v < 8 || v > 15) return false; sp += cost(v) }
+  if (sp > MAX_STAT_POINTS) return false;
+  if (!Array.isArray(c.moves) || !c.moves.length || c.moves.length > MAX_SLOTS) return false;
+  let mp = 0; const seen = new Set();
+  for (const i of c.moves) { if (!Number.isInteger(i) || !MOVES[i] || seen.has(i)) return false; seen.add(i); mp += MOVES[i][1] }
+  return mp <= MAX_MOVE_POINTS;
+}
+function kwId(raw) {
+  const k = raw.trim().toLowerCase().replace(/\s+/g, "-");
+  return /^[\p{L}\p{N}_-]{3,30}$/u.test(k) && !/^__.*__$/.test(k) ? k : null;
+}
+function newGame(chars) {       // crea una battaglia nuova (senza disegnare) e la restituisce come oggetto semplice
+  B = { f: chars.map(c => mkFighter(toP(c))), round: 0, log: [], over: null };
+  QUIET = true; try { startRound() } finally { QUIET = false }
+  return clone(B);
+}
+
+let net = null, joining = false;
+const wait = document.createElement("div"); wait.id = "wait"; wait.hidden = true; $("onl").after(wait);
+
+function resetUI() {
+  B = null; ON = null; QUIET = false;
+  $("fight").hidden = true; wait.hidden = true; $("setup").hidden = false; $("onl").hidden = false;
+  $("netbar").innerHTML = ""; showCreation(true); renderSetup();
+}
+function teardown() {
+  if (!net) return;
+  net.unsub && net.unsub(); clearInterval(net.pulseT); clearInterval(net.watchT);
+  document.removeEventListener("visibilitychange", onVis);
+  net = null;
+}
+
+async function join(raw) {
+  if (net || joining) return;
+  const kw = kwId(raw);
+  if (!kw) return toast("Parola chiave non valida: 3-30 caratteri tra lettere, numeri, - e _.", true);
+  if (!validName(st.name)) return toast("Dai un nome valido al personaggio prima di entrare.", true);
+  if (!st.moves.size) return toast("Scegli almeno una mossa.", true);
+  joining = true;
+  const c = mine();
+  try {
+    const uid = await authReady();
+    const ref = doc(db, "rooms", kw);
+    const seat = await runTransaction(db, async tx => {
+      const s = await tx.get(ref);
+      const fresh = () => ({ seats: [uid, null], chars: [c, null], status: "waiting", game: null, rm: [false, false], left: [false, false], p0: 0, p1: 0, v: 0, upd: serverTimestamp() });
+      if (!s.exists()) { tx.set(ref, fresh()); return 0 }
+      const d = s.data(), i = d.seats.indexOf(uid);
+      if (i >= 0) { tx.update(ref, { left: d.left.map((x, j) => j === i ? false : x), upd: serverTimestamp() }); return i }   // rientro nella propria stanza
+      if (d.seats[1] === null) {                                                                                         // si prende il secondo posto: parte la battaglia
+        const chars = [d.chars[0], c];
+        if (!okChar(chars[0])) throw new Error("La scheda dell'altro giocatore non è valida.");
+        tx.update(ref, { seats: [d.seats[0], uid], chars, status: "fight", game: newGame(chars), rm: [false, false], left: [false, false], v: d.v + 1, upd: serverTimestamp() });
+        return 1;
+      }
+      const age = Date.now() - (d.upd && d.upd.toMillis ? d.upd.toMillis() : Date.now());
+      if (age > STALE_MS) { tx.set(ref, fresh()); return 0 }                                                            // stanza abbandonata da oltre 10 minuti: si riusa
+      throw new Error("Stanza piena: scegliete un'altra parola chiave.");
+    });
+    attach(ref, kw, uid, seat);
+  } catch (e) { toast(msg(e), true) }
+  finally { joining = false }
+}
+
+function attach(ref, kw, uid, seat) {
+  net = { ref, kw, uid, seat, v: -1, key: "", opp: { n: -1, t: Date.now() }, seen: false, inFight: false, hasOpp: false, left: false, busy: false, game: null };
+  ON = { seat, rm: [false, false], gone: false };
+  net.unsub = onSnapshot(ref, onSnap, e => toast(msg(e), true));
+  net.pulseT = setInterval(pulse, PULSE_MS);
+  net.watchT = setInterval(refresh, 3000);
+  document.addEventListener("visibilitychange", onVis);
+  pulse();
+}
+function pulse() { if (net) updateDoc(net.ref, { ["p" + net.seat]: increment(1), upd: serverTimestamp() }).catch(() => {}) }
+function onVis() { if (!document.hidden) pulse() }
+
+function onSnap(s) {
+  if (!net) return;
+  if (!s.exists()) { if (net.seen) { toast("La stanza è stata chiusa.", true); teardown(); resetUI() } return }
+  net.seen = true;
+  const d = s.data(), o = 1 - net.seat;
+  if (d["p" + o] !== net.opp.n) { net.opp.n = d["p" + o]; net.opp.t = Date.now() }   // l'avversario è "vivo" finché il suo contatore cambia
+  net.hasOpp = d.seats[o] !== null; net.left = !!d.left[o];
+  ON.rm = d.rm;
+  if (d.status === "fight" && d.game) {
+    net.game = d.game;
+    if (d.v !== net.v) { net.v = d.v; B = clone(d.game) }
+    if (!net.inFight) {
+      net.inFight = true; wait.hidden = true; $("setup").hidden = true; $("onl").hidden = true; $("fight").hidden = false; showCreation(false);
+    }
+  } else if (!net.inFight) {
+    $("onl").hidden = true; $("setup").hidden = true; wait.hidden = false;
+    wait.innerHTML = `<div class="slot"><span>Stanza <b>${esc(net.kw)}</b> creata. In attesa dell'avversario: comunicategli la parola chiave.</span><button id="bLeave">Annulla</button></div>`;
+  }
+  refresh();
+}
+
+function refresh() {               // ridisegna solo se qualcosa è cambiato
+  if (!net || !net.inFight || !B) return;
+  ON.gone = net.hasOpp && (net.left || Date.now() - net.opp.t > GONE_MS);
+  const key = [net.v, ON.rm.join(), ON.gone, B.over].join("|");
+  if (key === net.key) return;
+  net.key = key;
+  $("netbar").innerHTML = `<span>Stanza <b>${esc(net.kw)}</b> · avversario ${ON.gone ? "disconnesso" : "connesso"}</span>`
+    + (ON.gone && B.over == null ? `<button id="bClaim">Vinci a tavolino</button>` : "");
+  renderB();
+}
+
+async function play(n) {
+  if (!net || net.busy) return;
+  net.busy = true;
+  try {
+    await runTransaction(db, async tx => {
+      const s = await tx.get(net.ref);
+      if (!s.exists()) throw new Error("La stanza non esiste più.");
+      const d = s.data(), g = clone(d.game);
+      if (d.status !== "fight" || !g || g.over != null || g.order[g.pos] !== net.seat || !g.f[net.seat].mv.includes(n)) throw new Error("Non puoi usare questa mossa adesso.");
+      B = g; QUIET = true; try { useMove(n) } finally { QUIET = false }
+      tx.update(net.ref, { game: clone(B), v: d.v + 1, upd: serverTimestamp() });
+    });
+  } catch (e) { toast(msg(e), true); if (net && net.game) B = clone(net.game) }
+  finally { if (net) net.busy = false }
+}
+
+async function rematch() {
+  if (!net) return;
+  try {
+    await runTransaction(db, async tx => {
+      const s = await tx.get(net.ref); if (!s.exists()) throw new Error("La stanza non esiste più.");
+      const d = s.data(); if (!d.game || d.game.over == null) return;
+      const rm = d.rm.map((x, j) => j === net.seat ? true : x);
+      if (rm[0] && rm[1]) {
+        if (!okChar(d.chars[0]) || !okChar(d.chars[1])) throw new Error("Una delle schede non è valida.");
+        tx.update(net.ref, { game: newGame(d.chars), rm: [false, false], v: d.v + 1, upd: serverTimestamp() });
+      } else tx.update(net.ref, { rm, upd: serverTimestamp() });
+    });
+  } catch (e) { toast(msg(e), true); if (net && net.game) B = clone(net.game) }
+}
+
+async function claim() {            // l'avversario è sparito: vittoria a tavolino
+  if (!net) return;
+  try {
+    await runTransaction(db, async tx => {
+      const s = await tx.get(net.ref); if (!s.exists()) throw new Error("La stanza non esiste più.");
+      const d = s.data(), g = clone(d.game); if (!g || g.over != null) return;
+      B = g; QUIET = true;
+      try { say(g.f[1 - net.seat].name + " non risponde più: vittoria a tavolino."); finish(net.seat) } finally { QUIET = false }
+      tx.update(net.ref, { game: clone(B), v: d.v + 1, upd: serverTimestamp() });
+    });
+  } catch (e) { toast(msg(e), true); if (net && net.game) B = clone(net.game) }
+}
+
+async function leave() {
+  if (!net) return;
+  const n = net, gone = ON && ON.gone;
+  teardown(); resetUI();
+  try {
+    await runTransaction(db, async tx => {
+      const s = await tx.get(n.ref); if (!s.exists()) return;
+      const d = s.data(), o = 1 - n.seat;
+      if (d.status === "waiting" || d.seats[o] === null || d.left[o] || gone) tx.delete(n.ref);          // nessuno resta: si chiude la stanza
+      else tx.update(n.ref, { left: d.left.map((x, j) => j === n.seat ? true : x), upd: serverTimestamp() });
+    });
+  } catch (e) { /* la stanza scadrà da sola */ }
+}
+
+window.PVPNET = { join, play, leave, rematch, claim };
+</script>
+</body>
+</html>
