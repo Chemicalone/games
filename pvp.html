@@ -51,7 +51,7 @@ button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:v
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--parch);border:2px solid var(--gold);padding:12px 20px;border-radius:3px;font-family:var(--head);font-size:14px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .25s}
 #toast.show{opacity:1}#toast.err{border-color:#e05555;color:#ffb3b3}
 .fighters{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.fc{background:var(--leather);color:var(--parch);border:2px solid var(--leather2);border-radius:6px;padding:12px;font-family:var(--head);text-align:center;min-height:118px}
+.fc{background:var(--leather);color:var(--parch);border:2px solid var(--leather2);border-radius:6px;padding:12px;font-family:var(--head);text-align:center;min-height:160px}
 .fc.act{border-color:var(--gold);box-shadow:0 0 0 3px var(--blood)}.fc.ko{opacity:.5}
 .hpb{height:14px;background:#0008;border:1px solid var(--gold);border-radius:7px;margin:8px 0 4px;overflow:hidden}
 .hpb i{display:block;height:100%;background:var(--blood);transition:width .4s}
@@ -60,6 +60,12 @@ button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:v
 .slot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.slot span{flex:1;min-width:200px}
 #turn{margin:6px 0 12px;font-size:19px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .move .dm{margin-left:auto;font-size:13px;font-family:var(--head)}
+.move .nm{display:flex;flex-direction:column;gap:2px;text-align:left}
+.move .nm small{font-family:var(--head);font-size:12px;opacity:.85}
+#bmoves{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.hp.mp{border-color:#2b5fa8}.hp.mp b{color:#2b5fa8}
+.mpb{margin:4px 0}.mpb i{background:#2b5fa8}
+.move.item{border-style:dashed}
 #log{margin-top:14px;max-height:240px;overflow:auto;border-top:2px solid var(--blood);padding-top:8px}#log p{margin:4px 0;font-size:16px}
 @media (max-width:560px){.fighters{grid-template-columns:1fr}}
 .cr[hidden]{display:none}
@@ -94,6 +100,7 @@ button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:v
         <input type="text" id="name" maxlength="9" autocomplete="off" placeholder="Es. Thorin">
       </label>
       <div class="hp" title="Punti ferita = Costituzione + 70"><b id="hp">42</b><span>Punti ferita</span></div>
+      <div class="hp mp" title="Punti mana = Intelligenza × 5 + 30. In battaglia recuperi 5 + bonus Intelligenza PM a ogni tuo turno."><b id="mp">70</b><span>Punti mana</span></div>
     </div>
   </section>
 
@@ -149,6 +156,7 @@ const pretty=n=>n.replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
 function render(){
   const sp=statPoints(), mp=movePoints(), left=MAX_STAT_POINTS-sp;
   $("hp").textContent=st.costituzione+70;
+  $("mp").textContent=st.intelligenza*5+30;
   $("statInfo").innerHTML=`Punti rimasti: <b>${left}/${MAX_STAT_POINTS}</b>`;
   $("stats").innerHTML=STATS.map(([k,full,ab])=>{
     const v=st[k], up=v<15&&cost(v+1)-cost(v)<=left, down=v>8;
@@ -175,9 +183,10 @@ const SPEC_DESC={
 };
 function moveDesc(n){
   const sn=k=>STATS.find(s=>s[0]===k)[1];
-  if(DMG[n]){const[k,a,f]=DMG[n];return `Danno: ${a}d${f} + bonus di ${sn(k)}.`}
-  if(HEAL[n]){const[k,a,f]=HEAL[n];return `Cura: ${a}d${f} + bonus di ${sn(k)}. Non supera i PF massimi.`}
-  return SPEC_DESC[n]||"";
+  const[pm,ms]=MECH[n],tail=` Costo: ${pm} PM · Precisione: ${100-ms}%.`+((DMG[n]||HEAL[n])?` Critico (×1,5): ${critPct(n)}%.`:"");
+  if(DMG[n]){const[k,a,f]=DMG[n];return `Danno: ${a}d${f} + bonus di ${sn(k)}.`+tail}
+  if(HEAL[n]){const[k,a,f]=HEAL[n];return `Cura: ${a}d${f} + bonus di ${sn(k)}. Non supera i PF massimi.`+tail}
+  return (SPEC_DESC[n]||"")+tail;
 }
 const tip=document.createElement("div");tip.id="tip";tip.setAttribute("role","tooltip");document.body.appendChild(tip);
 function showTip(w,x,y){
@@ -250,10 +259,23 @@ function parse(text){
 }
 /* ===== Arena: motore di combattimento locale ===== */
 const DMG={dardo_incantato:["intelligenza",1,6],colpo_preciso:["des",1,6],punizione_divina:["carisma",1,8],colpo_extra:["forza",1,10],Raffica_di_colpi:["forza",2,4],attacco_furtivo:["des",2,6],fulmine:["intelligenza",1,12],fireball:["intelligenza",2,8],raggio_rovente:["carisma",2,8],dito_della_morte:["saggezza",2,10]};
-const HEAL={cura_ferite:["saggezza",1,6],mani_imposte:["carisma",1,6],parola_guaritrice:["saggezza",1,8]};
+const HEAL={cura_ferite:["saggezza",3,6],mani_imposte:["carisma",3,6],parola_guaritrice:["saggezza",3,8]};
 const SPEC={spingere:["svantaggio",2,1],aiutare:["vantaggio",2,0],ragnatela:["lento",3,1],maleficio:["male",4,1],Ira:["ira",3,0]}; // [effetto, azioni, su avversario?]
 const FX={svantaggio:"Svantaggio",vantaggio:"Vantaggio",lento:"Rallentato",male:"Maleficio",ira:"Ira"};
 const MI=Object.fromEntries(MOVES.map(m=>[m[0],m[2]]));
+/* [costo PM, % di miss] per ogni mossa */
+const MECH={spingere:[3,5],aiutare:[3,0],dardo_incantato:[9,5],colpo_preciso:[7,10],cura_ferite:[15,0],mani_imposte:[15,0],punizione_divina:[16,15],maleficio:[12,10],parola_guaritrice:[20,0],Ira:[10,0],colpo_extra:[4,25],Raffica_di_colpi:[3,10],fulmine:[23,15],attacco_furtivo:[10,25],ragnatela:[17,15],fireball:[28,15],raggio_rovente:[27,15],dito_della_morte:[33,25]};
+const AB=Object.fromEntries(STATS.map(s=>[s[0],s[2]]));
+/* Critici stile Pokémon: dopo che la mossa va a segno, 1/24 di probabilità (1/8 per le mosse "precise"); danni e cure ×1,5 */
+const CRIT_LO=1/24, CRIT_HI=1/8, HICRIT=new Set(["attacco_furtivo","colpo_preciso"]);
+const critPct=n=>HICRIT.has(n)?"12,5":"4";
+const mpRegen=f=>5+Math.floor((f.s.intelligenza-8)/2);          // PM recuperati a ogni tua azione: 5 + bonus Intelligenza
+const offUsable=f=>f.mv.some(n=>DMG[n]&&f.mp>=MECH[n][0]);      // ha almeno una mossa offensiva che può permettersi?
+// Azioni speciali: "__cura" e "__mana" = oggetti monouso (ce li hanno tutti); "__struggle" = solo se non hai nessuna mossa offensiva utilizzabile
+const canPlay=(f,n)=>n==="__struggle"?!offUsable(f)
+  :n==="__cura"?!!f.it.cura&&f.hp<f.max
+  :n==="__mana"?!!f.it.mana&&f.mp<f.mpmax
+  :f.mv.includes(n)&&f.mp>=MECH[n][0];
 const bonus=v=>Math.floor((v-8)/2), die=f=>1+Math.floor(Math.random()*f);
 const dice=(n,f)=>{let t=0;for(let i=0;i<n;i++)t+=die(f);return t};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
@@ -266,7 +288,7 @@ function roll(n,f,adv,dis){            // vantaggio/svantaggio: si tira l'intero
   const b=dice(n,f),t=adv?Math.max(a,b):Math.min(a,b);
   return{t,x:n+"d"+f+": "+a+" e "+b+", "+(adv?"vantaggio":"svantaggio")+" → "+t};
 }
-const mkFighter=p=>({name:p.name,s:Object.fromEntries(STATS.map(([k])=>[k,p[k]])),max:p.costituzione+70,hp:p.costituzione+70,
+const mkFighter=p=>({name:p.name,s:Object.fromEntries(STATS.map(([k])=>[k,p[k]])),max:p.costituzione+70,hp:p.costituzione+70,mpmax:p.intelligenza*5+30,mp:p.intelligenza*5+30,it:{cura:true,mana:true},
   mv:[...p.moves].sort((a,b)=>a-b).map(i=>MOVES[i][0]),fx:{svantaggio:0,vantaggio:0,lento:0,male:0,ira:0}});
 const say=t=>{B.log.unshift(t);if(B.log.length>60)B.log.length=60};
 let QUIET=false,ON=null;                 // QUIET: calcola senza disegnare (transazioni online); ON: {seat,rm,gone} se si gioca online
@@ -285,18 +307,38 @@ function startRound(){
 function beginAction(){                 // gli effetti si scalano sulle azioni di chi li subisce
   const i=B.order[B.pos],f=B.f[i];B.act={};
   for(const k in f.fx){if(f.wait===k){f.wait=null;B.act[k]=false;continue}B.act[k]=f.fx[k]>0;if(f.fx[k]>0)f.fx[k]--}
+  if(f.mp<f.mpmax)f.mp=Math.min(f.mpmax,f.mp+mpRegen(f));   // rigenerazione PM a inizio di ogni tua azione
   if(B.act.male){const t=die(6);f.hp=Math.max(0,f.hp-t);say(f.name+" subisce "+t+" danni dal maleficio (1d6).");if(f.hp<=0)return finish(1-i)}
   draw();
 }
 function finish(w){B.over=w;say(B.f[w].name+" vince la battaglia!");draw()}
 function useMove(n){
   const i=B.order[B.pos],f=B.f[i],g=B.f[1-i],a=B.act,e=DMG[n]||HEAL[n];
+  const next=()=>{B.pos++;B.pos<2?beginAction():startRound()};
+  if(!canPlay(f,n))return;
+  if(n==="__cura"){const h=f.max-f.hp;f.it.cura=false;f.hp=f.max;say(f.name+" usa Cura totale e recupera "+h+" PF.");return next()}
+  if(n==="__mana"){const m=f.mpmax-f.mp;f.it.mana=false;f.mp=f.mpmax;say(f.name+" usa Elisir di mana e recupera "+m+" PM.");return next()}
+  if(n==="__struggle"){
+    const r=roll(1,10,a.vantaggio,a.svantaggio);let t=r.t,x=r.x;
+    const cr=Math.random()<CRIT_LO,ck=cr?" Colpo critico!":"";
+    if(cr){t=Math.floor(t*1.5);x+=", critico ×1,5 → "+t}
+    if(a.ira){t=Math.floor(t*1.5);x+=", Ira ×1,5 → "+t}
+    g.hp=Math.max(0,g.hp-t);say(f.name+" usa Struggle: "+t+" danni a "+g.name+" ("+x+")."+ck);
+    if(g.hp<=0)return finish(i);
+    const rc=Math.ceil(f.max*0.25);f.hp=Math.max(0,f.hp-rc);say(f.name+" subisce "+rc+" danni di contraccolpo (25% dei PF massimi).");
+    if(f.hp<=0)return finish(1-i);
+    return next();
+  }
+  if(die(100)<=MECH[n][1]){say(f.name+" usa "+pretty(n)+"... ma fallisce il colpo!");return next()}   // miss: nessun PM consumato
+  f.mp-=MECH[n][0];
   if(e){
     const r=roll(e[1],e[2],a.vantaggio,a.svantaggio),bo=bonus(f.s[e[0]]);
     let t=r.t+bo,x=r.x+" + "+bo;
-    if(HEAL[n]){const h=Math.min(f.max,f.hp+t)-f.hp;f.hp+=h;say(f.name+" usa "+pretty(n)+" e recupera "+h+" PF ("+x+").")}
+    const cr=Math.random()<(HICRIT.has(n)?CRIT_HI:CRIT_LO),ck=cr?" Colpo critico!":"";
+    if(cr){t=Math.floor(t*1.5);x+=", critico ×1,5 → "+t}
+    if(HEAL[n]){const h=Math.min(f.max,f.hp+t)-f.hp;f.hp+=h;say(f.name+" usa "+pretty(n)+" e recupera "+h+" PF ("+x+")."+ck)}
     else{if(a.ira){t=Math.floor(t*1.5);x+=", Ira ×1,5 → "+t}
-      g.hp=Math.max(0,g.hp-t);say(f.name+" usa "+pretty(n)+": "+t+" danni a "+g.name+" ("+x+").")}
+      g.hp=Math.max(0,g.hp-t);say(f.name+" usa "+pretty(n)+": "+t+" danni a "+g.name+" ("+x+")."+ck)}
   }else{
     const[k,d,opp]=SPEC[n],T=opp?g:f;T.fx[k]=d;if(n==="ragnatela"&&B.pos===0)T.wait=k; // se chi la lancia è già primo, il round in corso non conta
     say(f.name+" usa "+pretty(n)+": "+T.name+" ha "+FX[k]+" per "+d+" azioni.");
@@ -309,6 +351,7 @@ function renderB(){
   const cur=B.f[B.order[B.pos]],left=(f,i,k)=>f.fx[k]+(B.over==null&&B.order[B.pos]===i&&B.act[k]?1:0);
   $("fighters").innerHTML=B.f.map((f,i)=>`<div class="fc${B.over==null&&B.order[B.pos]===i?" act":""}${f.hp<=0?" ko":""}"><b>${esc(f.name)}</b>${ON&&ON.seat===i?" (tu)":""}
     <div class="hpb"><i style="width:${100*f.hp/f.max}%"></i></div><div class="hpn">${f.hp} / ${f.max} PF</div>
+    <div class="hpb mpb"><i style="width:${100*f.mp/f.mpmax}%"></i></div><div class="hpn">${f.mp} / ${f.mpmax} PM</div>
     <div>${Object.keys(FX).filter(k=>left(f,i,k)>0).map(k=>`<span class="chip">${FX[k]} (${left(f,i,k)})</span>`).join("")||"&nbsp;"}</div></div>`).join("");
   const mine=!ON||B.order[B.pos]===ON.seat;   // online: i pulsanti sono tuoi e attivi solo nel tuo turno
   let tr;
@@ -320,8 +363,13 @@ function renderB(){
   }else tr=`Round ${B.round}: tocca a <b>${esc(cur.name)}</b>${ON&&mine?" (è il tuo turno)":""}<button id="${ON?"bLeave":"bAgain"}">Abbandona</button>`;
   $("turn").innerHTML=tr;
   const my=ON?B.f[ON.seat]:cur;
-  $("bmoves").innerHTML=B.over!=null?"":my.mv.map(n=>{const e=DMG[n]||HEAL[n],lab=e?e[1]+"d"+e[2]+"+"+bonus(my.s[e[0]]):(SPEC[n][2]?"su avversario":"su di sé");
-    return `<button class="move" data-bm="${n}"${mine?"":" disabled"}><span class="ic">${MI[n]}</span><span>${pretty(n)}</span><span class="dm">${lab}</span></button>`}).join("");
+  $("bmoves").innerHTML=B.over!=null?"":my.mv.map(n=>{const e=DMG[n]||HEAL[n],[pm,ms]=MECH[n],ok=my.mp>=pm,
+      lab=(e?e[1]+"d"+e[2]+"+"+AB[e[0]]+"(+"+bonus(my.s[e[0]])+")":(SPEC[n][2]?"su avversario":"su di sé"))+" | "+pm+" PM | Acc: "+(100-ms)+"%"+(e?" | Crit: "+critPct(n)+"%":"");
+    return `<button class="move" data-bm="${n}"${mine&&ok?"":" disabled"}${ok?"":' title="PM insufficienti"'}><span class="ic">${MI[n]}</span><span class="nm">${pretty(n)}<small>${lab}</small></span></button>`}).join("")
+    +[["__cura","🧪","Cura totale","PF al massimo | Monouso | "+(my.it.cura?"Disponibile":"Esaurito"),my.it.cura&&my.hp<my.max],
+      ["__mana","🔮","Elisir di mana","PM al massimo | Monouso | "+(my.it.mana?"Disponibile":"Esaurito"),my.it.mana&&my.mp<my.mpmax]]
+      .map(([id,ic,nm,d,ok])=>`<button class="move item" data-bm="${id}"${mine&&ok?"":" disabled"}><span class="ic">${ic}</span><span class="nm">${nm}<small>${d}</small></span></button>`).join("")
+    +(mine&&!offUsable(my)?`<button class="move" data-bm="__struggle"><span class="ic">💢</span><span class="nm">Struggle<small>1d10 | 0 PM | Contraccolpo: 25% PF max</small></span></button>`:"");
   $("log").innerHTML=B.log.map(l=>`<p>${esc(l)}</p>`).join("");
 }
 function renderSetup(){
@@ -505,7 +553,7 @@ async function play(n) {
       const s = await tx.get(net.ref);
       if (!s.exists()) throw new Error("La stanza non esiste più.");
       const d = s.data(), g = clone(d.game);
-      if (d.status !== "fight" || !g || g.over != null || g.order[g.pos] !== net.seat || !g.f[net.seat].mv.includes(n)) throw new Error("Non puoi usare questa mossa adesso.");
+      if (d.status !== "fight" || !g || g.over != null || g.order[g.pos] !== net.seat || !canPlay(g.f[net.seat], n)) throw new Error("Non puoi usare questa mossa adesso.");
       B = g; QUIET = true; try { useMove(n) } finally { QUIET = false }
       tx.update(net.ref, { game: clone(B), v: d.v + 1, upd: serverTimestamp() });
     });
