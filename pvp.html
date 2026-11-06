@@ -77,6 +77,20 @@ button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:v
 .mw{display:block}.mw .move{width:100%;height:100%}
 #tip{position:fixed;z-index:50;max-width:260px;background:var(--ink);color:var(--parch);border:2px solid var(--gold);border-radius:3px;padding:8px 12px;font-family:var(--body);font-size:16px;line-height:1.3;box-shadow:0 4px 14px #000a;opacity:0;pointer-events:none;transition:opacity .15s}
 #tip.show{opacity:1}
+#help{border:3px solid var(--gold);border-radius:4px;padding:0;background:linear-gradient(var(--parch),var(--parch2));color:var(--text);width:min(900px,94vw);max-height:90vh;box-shadow:0 0 0 6px var(--leather),0 10px 40px #000c}
+#help::backdrop{background:#000b}
+#help .hb{padding:18px 22px 22px;overflow:auto;max-height:90vh}
+#help h3{font-family:var(--head);font-size:17px;margin:18px 0 6px;color:var(--blood)}
+#help p,#help li{font-size:17px;line-height:1.35;margin:6px 0}
+#help ul{padding-left:20px;margin:6px 0}
+#help .hx{float:right;margin:0 0 8px 12px}
+#help .sc{background:#f3e6c4;border:2px solid var(--parch2);border-radius:4px;padding:6px 12px 10px;margin:10px 0}
+#help .sc h3{margin-top:8px}
+#help table{border-collapse:collapse;width:100%;font-size:15px;margin-top:6px}
+#help th,#help td{border-bottom:1px solid var(--parch2);padding:3px 6px;text-align:left}
+#help th{font-family:var(--head);font-size:12px}
+#help td.n{white-space:nowrap}
+#help .me{font-size:15px;color:var(--blood)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -90,6 +104,7 @@ button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:v
     <button id="bNew">Nuovo personaggio</button>
     <button id="bLoad">Carica da file</button>
     <button id="bSave" class="btn main">Salva su PC</button>
+    <button id="bHelp" aria-haspopup="dialog">📖 Come funzionano le stat</button>
     <input type="file" id="file" accept=".txt,text/plain" hidden>
     <input type="file" id="file2" accept=".txt,text/plain" hidden>
   </div>
@@ -99,7 +114,7 @@ button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:v
       <label>Nome dell'eroe (max 9 caratteri)
         <input type="text" id="name" maxlength="9" autocomplete="off" placeholder="Es. Thorin">
       </label>
-      <div class="hp" title="Punti ferita = Costituzione + 70"><b id="hp">42</b><span>Punti ferita</span></div>
+      <div class="hp" title="Punti ferita = Costituzione × 3 + 50"><b id="hp">42</b><span>Punti ferita</span></div>
       <div class="hp mp" title="Punti mana = Intelligenza × 5 + 30. In battaglia recuperi 5 + bonus Intelligenza PM a ogni tuo turno."><b id="mp">70</b><span>Punti mana</span></div>
     </div>
   </section>
@@ -132,6 +147,7 @@ button:disabled{opacity:.3;cursor:not-allowed}button:disabled:hover{background:v
     </div>
   </section>
 </div>
+<dialog id="help" aria-labelledby="helpT"><div class="hb" id="helpBody"></div></dialog>
 <div id="toast" role="status"></div>
 
 <script>
@@ -155,7 +171,7 @@ const pretty=n=>n.replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
 
 function render(){
   const sp=statPoints(), mp=movePoints(), left=MAX_STAT_POINTS-sp;
-  $("hp").textContent=st.costituzione+70;
+  $("hp").textContent=st.costituzione*3+50;
   $("mp").textContent=st.intelligenza*5+30;
   $("statInfo").innerHTML=`Punti rimasti: <b>${left}/${MAX_STAT_POINTS}</b>`;
   $("stats").innerHTML=STATS.map(([k,full,ab])=>{
@@ -175,18 +191,20 @@ function render(){
 
 /* Descrizioni delle mosse (tooltip nella scelta delle mosse) */
 const SPEC_DESC={
-  spingere:"L'avversario ha svantaggio ai tiri per 2 turni (due dadi, vale il peggiore).",
-  aiutare:"Tu hai vantaggio ai tuoi tiri per 2 turni (due dadi, vale il migliore).",
-  ragnatela:"L'avversario è rallentato per 3 turni: tu agisci sempre per primo.",
-  maleficio:"L'avversario subisce 1d6 di danno a turno per 4 turni.",
-  Ira:"Per 3 turni il tuo danno è moltiplicato per 1,5 (sul totale dado + bonus)."
+  spingere:t=>`L'avversario ha svantaggio ai tiri per ${tn(t)} (due dadi, vale il peggiore).`,
+  aiutare:t=>`Tu hai vantaggio ai tuoi tiri per ${tn(t)} (due dadi, vale il migliore).`,
+  ragnatela:t=>`L'avversario è rallentato per ${tn(t)}: tu agisci sempre per primo.`,
+  maleficio:t=>`L'avversario subisce 1d6 di danno a turno per ${tn(t)}.`,
+  Ira:t=>`Per ${tn(t)} il tuo danno è moltiplicato per 1,5 (sul totale dado + bonus).`
 };
-function moveDesc(n){
-  const sn=k=>STATS.find(s=>s[0]===k)[1];
-  const[pm,ms]=MECH[n],tail=` Costo: ${pm} PM · Precisione: ${100-ms}%.`+((DMG[n]||HEAL[n])?` Critico (×1,5): ${critPct(n)}%.`:"");
-  if(DMG[n]){const[k,a,f]=DMG[n];return `Danno: ${a}d${f} + bonus di ${sn(k)}.`+tail}
-  if(HEAL[n]){const[k,a,f]=HEAL[n];return `Cura: ${a}d${f} + bonus di ${sn(k)}. Non supera i PF massimi.`+tail}
-  return (SPEC_DESC[n]||"")+tail;
+function moveDesc(n,c=st){   // c = statistiche con cui calcolare i valori (di default quelle della scheda in creazione)
+  const sn=k=>STATS.find(s=>s[0]===k)[1],k0=statOf(n),v=c[k0],ab=sn(k0)+" "+v;
+  const[bpm,bms]=MECH[n],pm=pmCost(c,n),ms=missPct(c,n);
+  const chg=(a,b,u)=>a===b?a+u:`${a}${u} (base ${b}${u})`;
+  const tail=` Costo: ${chg(pm,bpm," PM")} · Precisione: ${chg(100-ms,100-bms,"%")}.`+((DMG[n]||HEAL[n])?` Critico (×1,5): ${fmt(critChance(c,n))}%.`:"");
+  if(DMG[n]){const[k,a,f]=DMG[n];return `Danno: ${a}d${f} + ${bonus(v)} (bonus di ${ab}).`+tail}
+  if(HEAL[n]){const[k,a,f]=HEAL[n];return `Cura: ${a}d${f} + ${bonus(v)} (bonus di ${ab}). Non supera i PF massimi.`+tail}
+  return SPEC_DESC[n](specTurns(c,n))+` Usa ${ab}.`+tail;
 }
 const tip=document.createElement("div");tip.id="tip";tip.setAttribute("role","tooltip");document.body.appendChild(tip);
 function showTip(w,x,y){
@@ -209,7 +227,7 @@ $("bNew").onclick=()=>{if(confirm("Vuoi ricominciare da un personaggio vuoto?"))
 
 $("bSave").onclick=()=>{
   if(!validName(st.name))return toast("Inserisci un nome valido (1-9 caratteri, senza simboli come / \\ : * ? \" < > |).",true);
-  const lines=["PVP_CHARACTER 1","name="+st.name,...STATS.map(([k])=>k+"="+st[k]),"HP="+(st.costituzione+70),
+  const lines=["PVP_CHARACTER 1","name="+st.name,...STATS.map(([k])=>k+"="+st[k]),"HP="+(st.costituzione*3+50),
     ...[...st.moves].sort((a,b)=>a-b).map(i=>"move="+MOVES[i][0])];
   const blob=new Blob([lines.join("\n")+"\n"],{type:"text/plain"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=st.name+".txt";
@@ -243,7 +261,7 @@ function parse(text){
   });
   const total=STATS.reduce((a,s)=>a+cost(p[s[0]]),0);
   if(total>MAX_STAT_POINTS)throw new Error("File non valido: budget delle caratteristiche superato.");
-  {const hp=+get(8,"HP");if(hp!==p.costituzione+70&&hp!==p.costituzione+34&&hp!==p.carisma+34)throw new Error("File non valido: punti ferita non coerenti.");}
+  {const hp=get(8,"HP");if(!/^\d+$/.test(hp.trim()))throw new Error("File non valido: punti ferita non validi.");}   // i PF si ricalcolano dalla Costituzione: il valore nel file è solo informativo (compatibile con le schede vecchie)
   let pts=0;
   for(let i=9;i<L.length;i++){
     if(!L[i].startsWith("move="))throw new Error("File non valido: sezione mosse errata.");
@@ -264,18 +282,30 @@ const SPEC={spingere:["svantaggio",2,1],aiutare:["vantaggio",2,0],ragnatela:["le
 const FX={svantaggio:"Svantaggio",vantaggio:"Vantaggio",lento:"Rallentato",male:"Maleficio",ira:"Ira"};
 const MI=Object.fromEntries(MOVES.map(m=>[m[0],m[2]]));
 /* [costo PM, % di miss] per ogni mossa */
-const MECH={spingere:[3,5],aiutare:[3,0],dardo_incantato:[9,5],colpo_preciso:[7,10],cura_ferite:[15,0],mani_imposte:[15,0],punizione_divina:[16,15],maleficio:[12,10],parola_guaritrice:[20,0],Ira:[10,0],colpo_extra:[4,25],Raffica_di_colpi:[3,10],fulmine:[23,15],attacco_furtivo:[10,25],ragnatela:[17,15],fireball:[28,15],raggio_rovente:[27,15],dito_della_morte:[33,25]};
+const MECH={spingere:[3,5],aiutare:[4,0],dardo_incantato:[10,5],colpo_preciso:[7,10],cura_ferite:[13,0],mani_imposte:[15,0],punizione_divina:[18,18],maleficio:[12,10],parola_guaritrice:[17,0],Ira:[8,0],colpo_extra:[4,25],Raffica_di_colpi:[3,10],fulmine:[23,15],attacco_furtivo:[10,25],ragnatela:[17,15],fireball:[27,12],raggio_rovente:[27,15],dito_della_morte:[33,25]};
 const AB=Object.fromEntries(STATS.map(s=>[s[0],s[2]]));
 /* Critici stile Pokémon: dopo che la mossa va a segno, 1/24 di probabilità (1/8 per le mosse "precise"); danni e cure ×1,5 */
-const CRIT_LO=1/24, CRIT_HI=1/8, HICRIT=new Set(["attacco_furtivo","colpo_preciso"]);
-const critPct=n=>HICRIT.has(n)?"12,5":"4";
+const CRIT_LO=1/24, HICRIT=new Set(["attacco_furtivo","colpo_preciso"]);   // CRIT_LO resta fisso solo per Struggle
+/* ===== Scaling in base alle statistiche =====
+   Ogni mossa ha una statistica di riferimento (statOf). Valore 12 = standard (i numeri di MECH):
+   sotto 12 costo e fallimento salgono, sopra 12 scendono; critici e durate degli effetti crescono con la stat.
+   Prendono "s" = oggetto con le statistiche (f.s in battaglia, st nella creazione). */
+const SPEC_STAT={spingere:"forza",aiutare:"carisma",ragnatela:"intelligenza",maleficio:"saggezza",Ira:"costituzione"};
+const statOf=n=>(DMG[n]||HEAL[n]||[SPEC_STAT[n]])[0];
+const REF=12;
+const pmCost=(s,n)=>{const v=s[statOf(n)];return Math.max(1,Math.round(MECH[n][0]*(v<REF?1+0.125*(REF-v):1-0.04*(v-REF))))};   // INT 8: +50% · 15: −12%
+const missPct=(s,n)=>{if(HEAL[n])return 0;const v=s[statOf(n)];return Math.max(0,Math.round(MECH[n][1]+(v<REF?3.75*(REF-v):-5/3*(v-REF))))};        // 8: +15 punti · 15: −5 punti
+const critChance=(s,n)=>{const v=s[statOf(n)];return HICRIT.has(n)?Math.max(5,Math.min(25,12.5+2.5*(v-REF))):Math.max(1,Math.min(12,4+2*(v-REF)))};  // in %
+const SPEC_MAXBONUS={spingere:2,aiutare:2,ragnatela:1,maleficio:1,Ira:1};   // turni extra massimi: i debuff "economici" crescono di più, quelli già forti (Ira, Maleficio, Ragnatela) di meno
+const specTurns=(s,n)=>{const v=s[statOf(n)];return Math.max(1,SPEC[n][1]+(v>=15?SPEC_MAXBONUS[n]:v>=13?1:0)-(v<=9?1:0))};   // ≤9: −1 turno · 13–14: +1 · 15: +1 (o +2 per Spingere/Aiutare)
+const fmt=x=>String(Math.round(x*10)/10).replace(".",","), tn=t=>t+(t===1?" turno":" turni");
 const mpRegen=f=>5+Math.floor((f.s.intelligenza-8)/2);          // PM recuperati a ogni tua azione: 5 + bonus Intelligenza
-const offUsable=f=>f.mv.some(n=>DMG[n]&&f.mp>=MECH[n][0]);      // ha almeno una mossa offensiva che può permettersi?
+const offUsable=f=>f.mv.some(n=>DMG[n]&&f.mp>=pmCost(f.s,n));      // ha almeno una mossa offensiva che può permettersi?
 // Azioni speciali: "__cura" e "__mana" = oggetti monouso (ce li hanno tutti); "__struggle" = solo se non hai nessuna mossa offensiva utilizzabile
 const canPlay=(f,n)=>n==="__struggle"?!offUsable(f)
   :n==="__cura"?!!f.it.cura&&f.hp<f.max
   :n==="__mana"?!!f.it.mana&&f.mp<f.mpmax
-  :f.mv.includes(n)&&f.mp>=MECH[n][0];
+  :f.mv.includes(n)&&f.mp>=pmCost(f.s,n);
 const bonus=v=>Math.floor((v-8)/2), die=f=>1+Math.floor(Math.random()*f);
 const dice=(n,f)=>{let t=0;for(let i=0;i<n;i++)t+=die(f);return t};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
@@ -288,7 +318,7 @@ function roll(n,f,adv,dis){            // vantaggio/svantaggio: si tira l'intero
   const b=dice(n,f),t=adv?Math.max(a,b):Math.min(a,b);
   return{t,x:n+"d"+f+": "+a+" e "+b+", "+(adv?"vantaggio":"svantaggio")+" → "+t};
 }
-const mkFighter=p=>({name:p.name,s:Object.fromEntries(STATS.map(([k])=>[k,p[k]])),max:p.costituzione+70,hp:p.costituzione+70,mpmax:p.intelligenza*5+30,mp:p.intelligenza*5+30,it:{cura:true,mana:true},
+const mkFighter=p=>({name:p.name,s:Object.fromEntries(STATS.map(([k])=>[k,p[k]])),max:p.costituzione*3+50,hp:p.costituzione*3+50,mpmax:p.intelligenza*5+30,mp:p.intelligenza*5+30,it:{cura:true,mana:true},
   mv:[...p.moves].sort((a,b)=>a-b).map(i=>MOVES[i][0]),fx:{svantaggio:0,vantaggio:0,lento:0,male:0,ira:0}});
 const say=t=>{B.log.unshift(t);if(B.log.length>60)B.log.length=60};
 let QUIET=false,ON=null;                 // QUIET: calcola senza disegnare (transazioni online); ON: {seat,rm,gone} se si gioca online
@@ -329,18 +359,18 @@ function useMove(n){
     if(f.hp<=0)return finish(1-i);
     return next();
   }
-  if(die(100)<=MECH[n][1]){say(f.name+" usa "+pretty(n)+"... ma fallisce il colpo!");return next()}   // miss: nessun PM consumato
-  f.mp-=MECH[n][0];
+  if(die(100)<=missPct(f.s,n)){say(f.name+" usa "+pretty(n)+"... ma fallisce il colpo!");return next()}   // miss: nessun PM consumato
+  f.mp-=pmCost(f.s,n);
   if(e){
     const r=roll(e[1],e[2],a.vantaggio,a.svantaggio),bo=bonus(f.s[e[0]]);
     let t=r.t+bo,x=r.x+" + "+bo;
-    const cr=Math.random()<(HICRIT.has(n)?CRIT_HI:CRIT_LO),ck=cr?" Colpo critico!":"";
+    const cr=Math.random()*100<critChance(f.s,n),ck=cr?" Colpo critico!":"";
     if(cr){t=Math.floor(t*1.5);x+=", critico ×1,5 → "+t}
     if(HEAL[n]){const h=Math.min(f.max,f.hp+t)-f.hp;f.hp+=h;say(f.name+" usa "+pretty(n)+" e recupera "+h+" PF ("+x+")."+ck)}
     else{if(a.ira){t=Math.floor(t*1.5);x+=", Ira ×1,5 → "+t}
       g.hp=Math.max(0,g.hp-t);say(f.name+" usa "+pretty(n)+": "+t+" danni a "+g.name+" ("+x+")."+ck)}
   }else{
-    const[k,d,opp]=SPEC[n],T=opp?g:f;T.fx[k]=d;if(n==="ragnatela"&&B.pos===0)T.wait=k; // se chi la lancia è già primo, il round in corso non conta
+    const[k,,opp]=SPEC[n],d=specTurns(f.s,n),T=opp?g:f;T.fx[k]=d;if(n==="ragnatela"&&B.pos===0)T.wait=k; // se chi la lancia è già primo, il round in corso non conta
     say(f.name+" usa "+pretty(n)+": "+T.name+" ha "+FX[k]+" per "+d+" azioni.");
   }
   if(g.hp<=0)return finish(i);
@@ -363,8 +393,8 @@ function renderB(){
   }else tr=`Round ${B.round}: tocca a <b>${esc(cur.name)}</b>${ON&&mine?" (è il tuo turno)":""}<button id="${ON?"bLeave":"bAgain"}">Abbandona</button>`;
   $("turn").innerHTML=tr;
   const my=ON?B.f[ON.seat]:cur;
-  $("bmoves").innerHTML=B.over!=null?"":my.mv.map(n=>{const e=DMG[n]||HEAL[n],[pm,ms]=MECH[n],ok=my.mp>=pm,
-      lab=(e?e[1]+"d"+e[2]+"+"+AB[e[0]]+"(+"+bonus(my.s[e[0]])+")":(SPEC[n][2]?"su avversario":"su di sé"))+" | "+pm+" PM | Acc: "+(100-ms)+"%"+(e?" | Crit: "+critPct(n)+"%":"");
+  $("bmoves").innerHTML=B.over!=null?"":my.mv.map(n=>{const e=DMG[n]||HEAL[n],pm=pmCost(my.s,n),ms=missPct(my.s,n),ok=my.mp>=pm,
+      lab=(e?e[1]+"d"+e[2]+"+"+AB[e[0]]+"(+"+bonus(my.s[e[0]])+")":(SPEC[n][2]?"su avversario":"su di sé")+" · "+tn(specTurns(my.s,n)))+" | "+pm+" PM | Acc: "+(100-ms)+"%"+(e?" | Crit: "+fmt(critChance(my.s,n))+"%":"");
     return `<button class="move" data-bm="${n}"${mine&&ok?"":" disabled"}${ok?"":' title="PM insufficienti"'}><span class="ic">${MI[n]}</span><span class="nm">${pretty(n)}<small>${lab}</small></span></button>`}).join("")
     +[["__cura","🧪","Cura totale","PF al massimo | Monouso | "+(my.it.cura?"Disponibile":"Esaurito"),my.it.cura&&my.hp<my.max],
       ["__mana","🔮","Elisir di mana","PM al massimo | Monouso | "+(my.it.mana?"Disponibile":"Esaurito"),my.it.mana&&my.mp<my.mpmax]]
@@ -401,6 +431,46 @@ $("file2").onchange=e=>{
   r.onerror=()=>toast("Impossibile leggere il file.",true);
   r.readAsText(f);
 };
+/* ===== Guida: come le caratteristiche influenzano mosse e battaglia (i numeri sono calcolati con le formule reali del gioco) ===== */
+const HELP_STAT={
+  forza:["Danno delle mosse fisiche (Colpo extra, Raffica di colpi) e potenza di Spingere.","Ottima per chi vuole colpire spesso spendendo pochissimi PM: le mosse fisiche costano poco ma sbagliano di più."],
+  des:["Iniziativa: chi ha la Destrezza più alta agisce per primo in ogni round (a parità si tira un d20). Alimenta anche Colpo preciso e Attacco furtivo.","Agire per primo può chiudere lo scontro prima che l'avversario si muova. Le mosse da Destrezza hanno più critici."],
+  costituzione:["Punti ferita: PF = Costituzione × 3 + 50. Alimenta anche Ira.","Ogni punto vale 3 PF in più: è la statistica più sicura, ma non fa danno né dà PM."],
+  intelligenza:["Punti mana: PM = Intelligenza × 5 + 30, e ne recuperi 5 + bonus Intelligenza a ogni tuo turno. Alimenta Dardo incantato, Fulmine, Fireball e Ragnatela.","Senza mana le mosse potenti non si usano: con INT bassa le magie costano di più e sbagliano più spesso."],
+  saggezza:["Cura delle mosse di guarigione (Cura ferite, Parola guaritrice), Dito della morte e Maleficio.","È la stat del sostegno: più curi, più la battaglia si allunga a tuo favore, ma devi poterti permettere il mana."],
+  carisma:["Danno di Punizione divina e Raggio rovente, cura di Mani imposte, durata di Aiutare.","Una stat versatile che sta a metà tra attacco e cura."]
+};
+function openHelp(){
+  const mv=n=>pretty(n);
+  const rows=k=>MOVES.map(m=>m[0]).filter(n=>statOf(n)===k).map(n=>{
+    const at=v=>{const c={...st,[k]:v};return pmCost(c,n)+" PM · "+(100-missPct(c,n))+"%"};
+    const eff=DMG[n]?"danno":HEAL[n]?"cura":"effetto";
+    const cur=(DMG[n]||HEAL[n])?fmt(critChance(st,n))+"% crit":tn(specTurns(st,n));
+    return `<tr><td class="n">${MI[n]} ${mv(n)}</td><td>${eff}</td><td>${at(8)}</td><td>${at(12)}</td><td>${at(15)}</td><td>${cur}</td></tr>`}).join("");
+  $("helpBody").innerHTML=`<button class="hx" id="helpX">Chiudi ✕</button><h2 id="helpT">Come le tue scelte cambiano il gioco</h2>
+  <p>Ogni mossa è legata a <b>una sola caratteristica</b>: è quella che ne decide potenza, costo, precisione e durata. Scegliere dove mettere i punti significa scegliere quali mosse saranno forti e quali resteranno deboli.</p>
+  <h3>Le regole generali</h3><ul>
+  <li><b>Valore 12 = standard.</b> Sotto 12 le mosse di quella stat costano più PM e falliscono più spesso; sopra 12 costano meno e sbagliano meno. <b>Le cure non mancano mai</b>: la stat ne cambia solo costo ed efficacia.</li>
+  <li><b>Bonus ai dadi</b> = (valore − 8) ÷ 2, arrotondato per difetto: a 8 vale +0, a 12 vale +2, a 15 vale +3. Si somma a danni e cure.</li>
+  <li><b>Critici:</b> dopo che la mossa va a segno ci sono poche probabilità di fare ×1,5 su danno o cura. Crescono con la stat (Colpo preciso e Attacco furtivo ne hanno di più).</li>
+  <li><b>Effetti (Spingere, Aiutare, Ragnatela, Maleficio, Ira):</b> con stat alta durano 1-2 azioni in più, con stat bassa una in meno.</li>
+  <li><b>Un colpo mancato non consuma PM</b>, quindi una mossa imprecisa fa perdere il turno ma non il mana.</li>
+  <li><b>Costo dei punti:</b> i punti di caratteristica costano 1 fino a 13, poi 2 per il 14 e il 15. Un po' di tutto è sempre più sicuro di una sola stat altissima.</li>
+  <li><b>Mosse e slot:</b> hai 30 punti mossa e 6 slot. Le mosse da 6-8 punti sono potenti ma ne entrano poche; quelle da 1-2 sono economiche ma deboli.</li></ul>
+  <h3>Cosa succede in battaglia</h3><ul>
+  <li>Il combattimento è a turni: prima agisce chi ha più Destrezza. Ragnatela rallenta l'avversario e ti fa agire sempre per primo.</li>
+  <li>A ogni tuo turno recuperi PM: se li esaurisci e non hai mosse offensive utilizzabili ti resta solo <b>Struggle</b>, che ti ferisce del 25% dei PF massimi.</li>
+  <li>Hai due oggetti monouso: <b>Cura totale</b> e <b>Elisir di mana</b>. Usarli al momento giusto è parte dell'abilità.</li>
+  <li><b>Nessuna build vince contro tutto:</b> le build ricche di danno battono quelle di cura lenta, ma soffrono contro chi agisce prima o ha molti PF. Conta anche scegliere la mossa giusta a ogni turno.</li></ul>
+  <h3>Le sei caratteristiche</h3>
+  ${STATS.map(([k,full])=>`<div class="sc"><h3>${full} <span class="me">(la tua: ${st[k]}, bonus ${bonus(st[k])>=0?"+":""}${bonus(st[k])})</span></h3>
+    <p>${HELP_STAT[k][0]}</p><p><i>${HELP_STAT[k][1]}</i></p>
+    ${rows(k)?`<table><tr><th>Mossa</th><th>Tipo</th><th>Con ${full} 8</th><th>Con 12</th><th>Con 15</th><th>Alla tua stat</th></tr>${rows(k)}</table>`:""}</div>`).join("")}
+  <p class="me">I numeri della tabella sono quelli reali del gioco: costo in PM e precisione della mossa con quel valore. Prova a cambiare le tue caratteristiche e riaprire la guida per vedere come cambia l'ultima colonna.</p>`;
+  const d=$("help");d.showModal();$("helpBody").scrollTop=0;
+}
+$("bHelp").onclick=openHelp;
+$("help").addEventListener("click",e=>{if(e.target===$("help")||e.target.id==="helpX")$("help").close()});
 render();renderSetup();
 </script>
 <script type="module">
